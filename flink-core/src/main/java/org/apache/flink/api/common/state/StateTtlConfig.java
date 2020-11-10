@@ -79,16 +79,22 @@ public class StateTtlConfig implements Serializable {
 
 	/**
 	 * This option configures time scale to use for ttl.
+	 * Flink目前仅支持基于处理时间（ProcessingTime）的State TTL，事件时间会在不久的将来支持
 	 */
 	public enum TtlTimeCharacteristic {
 		/** Processing time, see also <code>org.apache.flink.streaming.api.TimeCharacteristic.ProcessingTime</code>. */
 		ProcessingTime
 	}
 
+	// 状态时间戳的更新方式
 	private final UpdateType updateType;
+	// 过期状态数据的可见性
 	private final StateVisibility stateVisibility;
+	// 对应的时间特征
 	private final TtlTimeCharacteristic ttlTimeCharacteristic;
+	// 用户设定的状态生存时间
 	private final Time ttl;
+
 	private final CleanupStrategies cleanupStrategies;
 
 	private StateTtlConfig(

@@ -38,9 +38,11 @@ abstract class AbstractTtlDecorator<T> {
 	final TtlTimeProvider timeProvider;
 
 	/** Whether to renew expiration timestamp on state read access. */
+	// updateTsOnRead 表示在读取状态值时也更新时间戳（即 UpdateType.OnReadAndWrite ）
 	final boolean updateTsOnRead;
 
 	/** Whether to renew expiration timestamp on state read access. */
+	// returnExpired表示即使状态过期，在被真正删除之前也返回它的值（ 即StateVisibility.ReturnExpiredIfNotCleanedUp ）
 	final boolean returnExpired;
 
 	/** State value time to live in milliseconds. */
@@ -56,8 +58,13 @@ abstract class AbstractTtlDecorator<T> {
 		this.original = original;
 		this.config = config;
 		this.timeProvider = timeProvider;
+
+		/**
+		 *
+		 */
 		this.updateTsOnRead = config.getUpdateType() == StateTtlConfig.UpdateType.OnReadAndWrite;
 		this.returnExpired = config.getStateVisibility() == StateTtlConfig.StateVisibility.ReturnExpiredIfNotCleanedUp;
+
 		this.ttl = config.getTtl().toMilliseconds();
 	}
 
@@ -86,9 +93,16 @@ abstract class AbstractTtlDecorator<T> {
 	}
 
 	<SE extends Throwable, CE extends Throwable, CLE extends Throwable, V> TtlValue<V> getWrappedWithTtlCheckAndUpdate(
-		SupplierWithException<TtlValue<V>, SE> getter,
-		ThrowingConsumer<TtlValue<V>, CE> updater,
-		ThrowingRunnable<CLE> stateClear) throws SE, CE, CLE {
+		SupplierWithException<TtlValue<V>, SE> getter,  // 一个可抛出异常的Supplier，用于获取状态值
+		ThrowingConsumer<TtlValue<V>, CE> updater,      // 一个可抛出异常的Consumer，用于更新状态的时间戳
+		ThrowingRunnable<CLE> stateClear                // 一个可抛出异常的Runnable，用于异步删除过期状态
+	) throws SE, CE, CLE {
+
+		/**
+		 *  在默认情况下的后台清理策略是：只有状态值被读取时，才会做过期检测，并异步清除过期的状态。
+		 *  这种惰性清理的机制会导致那些实际已经过期但从未被再次访问过的状态无法被删除，需要特别注意。
+		 */
+
 		TtlValue<V> ttlValue = getter.get();
 		if (ttlValue == null) {
 			return null;
@@ -100,6 +114,7 @@ abstract class AbstractTtlDecorator<T> {
 		} else if (updateTsOnRead) {
 			updater.accept(rewrapWithNewTs(ttlValue));
 		}
+
 		return ttlValue;
 	}
 }

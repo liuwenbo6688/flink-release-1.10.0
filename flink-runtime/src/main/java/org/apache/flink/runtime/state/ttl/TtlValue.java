@@ -30,6 +30,11 @@ import java.io.Serializable;
 public class TtlValue<T> implements Serializable {
 	private static final long serialVersionUID = 5221129704201125020L;
 
+
+	/**
+	 *   TtlValue的属性只有两个： 状态值 和 时间戳
+	 */
+
 	@Nullable
 	private final T userValue;
 	private final long lastAccessTimestamp;

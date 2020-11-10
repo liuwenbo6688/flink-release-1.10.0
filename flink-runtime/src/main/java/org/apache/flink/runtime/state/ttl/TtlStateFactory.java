@@ -56,6 +56,8 @@ import java.util.stream.Stream;
  * This state factory wraps state objects, produced by backends, with TTL logic.
  */
 public class TtlStateFactory<K, N, SV, TTLSV, S extends State, IS extends S> {
+
+
 	public static <K, N, SV, TTLSV, S extends State, IS extends S> IS createStateAndWrapWithTtlIfEnabled(
 		TypeSerializer<N> namespaceSerializer,
 		StateDescriptor<S, SV> stateDesc,
@@ -66,12 +68,19 @@ public class TtlStateFactory<K, N, SV, TTLSV, S extends State, IS extends S> {
 		Preconditions.checkNotNull(stateBackend);
 		Preconditions.checkNotNull(timeProvider);
 		return  stateDesc.getTtlConfig().isEnabled() ?
-			new TtlStateFactory<K, N, SV, TTLSV, S, IS>(
-				namespaceSerializer, stateDesc, stateBackend, timeProvider)
-				.createState() :
+				// 开启状态的TTL
+			new TtlStateFactory<K, N, SV, TTLSV, S, IS>(namespaceSerializer, stateDesc, stateBackend, timeProvider)
+					.createState()
+				:
+				// 没有设置TTL
 			stateBackend.createInternalState(namespaceSerializer, stateDesc);
 	}
 
+
+	/**
+	 *   维护了各种状态描述符与对应产生该种状态对象的工厂方法映射
+	 *   createStateFactories() 方法中完成初始化
+	 */
 	private final Map<Class<? extends StateDescriptor>, SupplierWithException<IS, Exception>> stateFactories;
 
 	@Nonnull
@@ -99,13 +108,19 @@ public class TtlStateFactory<K, N, SV, TTLSV, S extends State, IS extends S> {
 		this.ttlConfig = stateDesc.getTtlConfig();
 		this.timeProvider = timeProvider;
 		this.ttl = ttlConfig.getTtl().toMilliseconds();
+
+		/**
+		 *
+		 */
 		this.stateFactories = createStateFactories();
+
 		this.incrementalCleanup = getTtlIncrementalCleanup();
 	}
 
 	@SuppressWarnings("deprecation")
 	private Map<Class<? extends StateDescriptor>, SupplierWithException<IS, Exception>> createStateFactories() {
 		return Stream.of(
+				// ValueStateDescriptor --> createValueState()
 			Tuple2.of(ValueStateDescriptor.class, (SupplierWithException<IS, Exception>) this::createValueState),
 			Tuple2.of(ListStateDescriptor.class, (SupplierWithException<IS, Exception>) this::createListState),
 			Tuple2.of(MapStateDescriptor.class, (SupplierWithException<IS, Exception>) this::createMapState),
@@ -123,7 +138,18 @@ public class TtlStateFactory<K, N, SV, TTLSV, S extends State, IS extends S> {
 				stateDesc.getClass(), TtlStateFactory.class);
 			throw new FlinkRuntimeException(message);
 		}
+
+		/**
+		 * 获得状态实例:
+		 * createValueState()    ->  TtlValueState
+		 * createListState()     ->  TtlListState
+		 * createMapState()      ->  TtlMapState
+		 * createReducingState() ->  TtlReducingState
+		 *
+		 * Ttl*State, TTL的状态类名其实就是普通状态类名加上Ttl前缀
+		 */
 		IS state = stateFactory.get();
+
 		if (incrementalCleanup != null) {
 			incrementalCleanup.setTtlState((AbstractTtlState<K, N, ?, TTLSV, ?>) state);
 		}
@@ -134,7 +160,10 @@ public class TtlStateFactory<K, N, SV, TTLSV, S extends State, IS extends S> {
 	private IS createValueState() throws Exception {
 		ValueStateDescriptor<TtlValue<SV>> ttlDescriptor = new ValueStateDescriptor<>(
 			stateDesc.getName(), new TtlSerializer<>(LongSerializer.INSTANCE, stateDesc.getSerializer()));
-		return (IS) new TtlValueState<>(createTtlStateContext(ttlDescriptor));
+		return (IS) new TtlValueState<>(
+				// ttl 状态上下文
+				createTtlStateContext(ttlDescriptor)
+		);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -142,7 +171,10 @@ public class TtlStateFactory<K, N, SV, TTLSV, S extends State, IS extends S> {
 		ListStateDescriptor<T> listStateDesc = (ListStateDescriptor<T>) stateDesc;
 		ListStateDescriptor<TtlValue<T>> ttlDescriptor = new ListStateDescriptor<>(
 			stateDesc.getName(), new TtlSerializer<>(LongSerializer.INSTANCE, listStateDesc.getElementSerializer()));
-		return (IS) new TtlListState<>(createTtlStateContext(ttlDescriptor));
+		return (IS) new TtlListState<>(
+				//
+				createTtlStateContext(ttlDescriptor)
+		);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -152,7 +184,10 @@ public class TtlStateFactory<K, N, SV, TTLSV, S extends State, IS extends S> {
 			stateDesc.getName(),
 			mapStateDesc.getKeySerializer(),
 			new TtlSerializer<>(LongSerializer.INSTANCE, mapStateDesc.getValueSerializer()));
-		return (IS) new TtlMapState<>(createTtlStateContext(ttlDescriptor));
+		return (IS) new TtlMapState<>(
+				//
+				createTtlStateContext(ttlDescriptor)
+		);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -162,7 +197,10 @@ public class TtlStateFactory<K, N, SV, TTLSV, S extends State, IS extends S> {
 			stateDesc.getName(),
 			new TtlReduceFunction<>(reducingStateDesc.getReduceFunction(), ttlConfig, timeProvider),
 			new TtlSerializer<>(LongSerializer.INSTANCE, stateDesc.getSerializer()));
-		return (IS) new TtlReducingState<>(createTtlStateContext(ttlDescriptor));
+		return (IS) new TtlReducingState<>(
+				//
+				createTtlStateContext(ttlDescriptor)
+		);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -173,7 +211,8 @@ public class TtlStateFactory<K, N, SV, TTLSV, S extends State, IS extends S> {
 			aggregatingStateDescriptor.getAggregateFunction(), ttlConfig, timeProvider);
 		AggregatingStateDescriptor<IN, TtlValue<SV>, OUT> ttlDescriptor = new AggregatingStateDescriptor<>(
 			stateDesc.getName(), ttlAggregateFunction, new TtlSerializer<>(LongSerializer.INSTANCE, stateDesc.getSerializer()));
-		return (IS) new TtlAggregatingState<>(createTtlStateContext(ttlDescriptor), ttlAggregateFunction);
+		return (IS) new TtlAggregatingState<>(
+				createTtlStateContext(ttlDescriptor), ttlAggregateFunction);
 	}
 
 	@SuppressWarnings({"deprecation", "unchecked"})
@@ -186,19 +225,30 @@ public class TtlStateFactory<K, N, SV, TTLSV, S extends State, IS extends S> {
 			ttlInitAcc,
 			new TtlFoldFunction<>(foldingStateDescriptor.getFoldFunction(), ttlConfig, timeProvider, initAcc),
 			new TtlSerializer<>(LongSerializer.INSTANCE, stateDesc.getSerializer()));
-		return (IS) new TtlFoldingState<>(createTtlStateContext(ttlDescriptor));
+		return (IS) new TtlFoldingState<>(
+				createTtlStateContext(ttlDescriptor)
+		);
 	}
 
+	/**
+	 * 生成TTL状态的上下文
+	 */
 	@SuppressWarnings("unchecked")
 	private <OIS extends State, TTLS extends State, V, TTLV> TtlStateContext<OIS, V>
 		createTtlStateContext(StateDescriptor<TTLS, TTLV> ttlDescriptor) throws Exception {
 
 		ttlDescriptor.enableTimeToLive(stateDesc.getTtlConfig()); // also used by RocksDB backend for TTL compaction filter config
+
 		OIS originalState = (OIS) stateBackend.createInternalState(
 			namespaceSerializer, ttlDescriptor, getSnapshotTransformFactory());
+
 		return new TtlStateContext<>(
-			originalState, ttlConfig, timeProvider, (TypeSerializer<V>) stateDesc.getSerializer(),
-			registerTtlIncrementalCleanupCallback((InternalKvState<?, ?, ?>) originalState));
+				originalState,
+				ttlConfig,
+				timeProvider,
+				(TypeSerializer<V>) stateDesc.getSerializer(),
+				// 注册的增量清理回调
+				registerTtlIncrementalCleanupCallback((InternalKvState<?, ?, ?>) originalState));
 	}
 
 	private TtlIncrementalCleanup<K, N, TTLSV> getTtlIncrementalCleanup() {
@@ -207,12 +257,17 @@ public class TtlStateFactory<K, N, SV, TTLSV, S extends State, IS extends S> {
 		return config != null ? new TtlIncrementalCleanup<>(config.getCleanupSize()) : null;
 	}
 
+
+	// 定义增量
 	private Runnable registerTtlIncrementalCleanupCallback(InternalKvState<?, ?, ?> originalState) {
 		StateTtlConfig.IncrementalCleanupStrategy config =
 			ttlConfig.getCleanupStrategies().getIncrementalCleanupStrategy();
 		boolean cleanupConfigured = config != null && incrementalCleanup != null;
 		boolean isCleanupActive = cleanupConfigured &&
 			isStateIteratorSupported(originalState, incrementalCleanup.getCleanupSize());
+		/**
+		 *
+		 */
 		Runnable callback = isCleanupActive ? incrementalCleanup::stateAccessed : () -> { };
 		if (isCleanupActive && config.runCleanupForEveryRecord()) {
 			stateBackend.registerKeySelectionListener(stub -> callback.run());

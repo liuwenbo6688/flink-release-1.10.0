@@ -55,15 +55,28 @@ class TtlMapState<K, N, UK, UV>
 		return ttlValue == null ? null : ttlValue.getUserValue();
 	}
 
+
+
 	private TtlValue<UV> getWrapped(UK key) throws Exception {
 		accessCallback.run();
+
+		/**
+		 *  TtlMapState.get() 方法调用了 AbstractTtlDecorator.getWrappedWithTtlCheckAndUpdate()方法
+		 *  传入的获取（getter）、插入（updater）和删除（stateClear）的逻辑就是原MapState的 get()、put()和remove()方法
+		 */
 		return getWrappedWithTtlCheckAndUpdate(
-			() -> original.get(key), v -> original.put(key, v), () -> original.remove(key));
+				() -> original.get(key),
+				v -> original.put(key, v),
+				() -> original.remove(key));
 	}
 
 	@Override
 	public void put(UK key, UV value) throws Exception {
 		accessCallback.run();
+
+		/**
+		 * TtlMapState.put()只是在调用原MapState的put()方法之前，将状态包装为TtlValue而已
+		 */
 		original.put(key, wrapWithTs(value));
 	}
 

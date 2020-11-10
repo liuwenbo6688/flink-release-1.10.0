@@ -23,14 +23,15 @@ import org.apache.flink.api.common.typeutils.TypeSerializer;
 
 class TtlStateContext<T, SV> {
 	/** Wrapped original state handler. */
-	final T original;
+	final T original; // 原始state
 	final StateTtlConfig config;
-	final TtlTimeProvider timeProvider;
+	final TtlTimeProvider timeProvider;// 提供判断状态过期标准的时间戳
 
 	/** Serializer of original user stored value without timestamp. */
 	final TypeSerializer<SV> valueSerializer;
 
 	/** This registered callback is to be called whenever state is accessed for read or write. */
+	// accessCallback就是TtlStateContext中注册的增量清理回调
 	final Runnable accessCallback;
 
 	TtlStateContext(
