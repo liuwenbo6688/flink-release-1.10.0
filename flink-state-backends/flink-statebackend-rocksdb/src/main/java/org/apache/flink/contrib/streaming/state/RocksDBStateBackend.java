@@ -160,13 +160,19 @@ public class RocksDBStateBackend extends AbstractStateBackend implements Configu
 
 	// -- runtime values, set on TaskManager when initializing / using the backend
 
-	/** Base paths for RocksDB directory, as initialized. */
+	/** Base paths for RocksDB directory, as initialized.
+	 *  这里就是我们上述设置的 多个 rocksdb local dir
+	 * */
 	private transient File[] initializedDbBasePaths;
 
 	/** JobID for uniquifying backup paths. */
 	private transient JobID jobId;
 
 	/** The index of the next directory to be used from {@link #initializedDbBasePaths}.*/
+	/**
+	 * 下一次要使用 dir 的 index，如果 nextDirectory = 2，
+	 * 则使用 initializedDbBasePaths 中下标为 2 的那个目录做为 rocksdb 的存储目录
+	 */
 	private transient int nextDirectory;
 
 	/** Whether we already lazily initialized our local storage directories. */
@@ -450,6 +456,13 @@ public class RocksDBStateBackend extends AbstractStateBackend implements Configu
 			}
 		}
 
+		/**
+		 * lazyInitializeForJob 方法中， 通过这一行代码决定下一次要使用 dir 的 index，
+		 * 根据 initializedDbBasePaths.length 生成随机数，
+		 * 如果 initializedDbBasePaths.length = 12，生成随机数的范围为 0-11
+		 *
+		 * 随机分配有小概率会出现冲突
+		 */
 		nextDirectory = new Random().nextInt(initializedDbBasePaths.length);
 
 		isInitialized = true;
@@ -503,10 +516,12 @@ public class RocksDBStateBackend extends AbstractStateBackend implements Configu
 		// replace all characters that are not legal for filenames with underscore
 		String fileCompatibleIdentifier = operatorIdentifier.replaceAll("[^a-zA-Z0-9\\-]", "_");
 
+		/**
+		 * rockdb 初始化磁盘目录的逻辑
+		 */
 		lazyInitializeForJob(env, fileCompatibleIdentifier);
-
 		File instanceBasePath = new File(
-			getNextStoragePath(),
+			getNextStoragePath(), // 选择一块磁盘
 			"job_" + jobId + "_op_" + fileCompatibleIdentifier + "_uuid_" + UUID.randomUUID());
 
 		LocalRecoveryConfig localRecoveryConfig =

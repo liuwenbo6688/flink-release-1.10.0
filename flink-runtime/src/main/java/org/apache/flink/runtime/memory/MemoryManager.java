@@ -68,7 +68,7 @@ import static org.apache.flink.core.memory.MemorySegmentFactory.allocateUnpooled
  * (both via {@link HybridMemorySegment}). Releasing a memory segment will make it re-claimable
  * by the garbage collector.
  *
- * MemoryManager 是管理 Managed Memory 的类
+ * MemoryManager 是管理 Managed Memory(排序、缓存、哈希表) 的类
  */
 public class MemoryManager {
 

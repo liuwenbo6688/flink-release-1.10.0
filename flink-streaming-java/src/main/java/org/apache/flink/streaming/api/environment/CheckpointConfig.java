@@ -405,6 +405,9 @@ public class CheckpointConfig implements java.io.Serializable {
 		 *
 		 * <p>Note that checkpoint state is always kept if the job terminates
 		 * with state {@link JobStatus#FAILED}.
+		 *
+		 * 仅当作业失败时，作业的 Checkpoint 才会被保留用于任务恢复。
+		 * 当作业取消时，Checkpoint 状态信息会被删除，因此取消任务后，不能从 Checkpoint 位置进行恢复任务。
 		 */
 		DELETE_ON_CANCELLATION(true),
 
@@ -417,8 +420,12 @@ public class CheckpointConfig implements java.io.Serializable {
 		 *
 		 * <p>Note that checkpoint state is always kept if the job terminates
 		 * with state {@link JobStatus#FAILED}.
+		 * 当作业手动取消时，将会保留作业的 Checkpoint 状态信息。
+		 * 注意，这种情况下，需要手动清除该作业保留的 Checkpoint 状态信息，否则这些状态信息将永远保留在外部的持久化存储中。
 		 */
 		RETAIN_ON_CANCELLATION(false);
+
+		// 无论是选择上述哪种方式，后面都提示了一句：如果 Flink 任务失败了，Checkpoint 的状态信息将被保留。
 
 		private final boolean deleteOnCancellation;
 

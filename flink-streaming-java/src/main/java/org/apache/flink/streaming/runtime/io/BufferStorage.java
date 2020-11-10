@@ -27,6 +27,9 @@ import java.util.Optional;
  * The {@link BufferStorage} takes the buffers and events from a data stream and adds them in a sequence.
  * After a number of elements have been added, the {@link BufferStorage} can {@link #rollOver() "roll over"}.
  * After rolling over, previously stored buffers are available for reading via {@link #pollNext()}.
+ *
+ *
+ * 在 CheckpointedInputGate 中被使用
  */
 @Internal
 public interface BufferStorage extends AutoCloseable {
