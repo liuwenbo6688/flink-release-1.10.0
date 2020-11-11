@@ -45,6 +45,10 @@ public class SpanningRecordSerializer<T extends IOReadableWritable> implements R
 	private final DataOutputSerializer serializationBuffer;
 
 	/** Intermediate buffer for data serialization (wrapped from {@link #serializationBuffer}). */
+
+	/**
+	 *  存放中间序列化数据
+	 */
 	private ByteBuffer dataBuffer;
 
 	public SpanningRecordSerializer() {
@@ -68,9 +72,14 @@ public class SpanningRecordSerializer<T extends IOReadableWritable> implements R
 		}
 
 		serializationBuffer.clear();
+
+		// 前4位存放数据的长度
 		// the initial capacity of the serialization buffer should be no less than 4
 		serializationBuffer.skipBytesToWrite(4);
 
+		/**
+		 * Flink 1.10 这个版本是把 data 和 length 写在一个 ByteBuffer 中
+		 */
 		// write data and length
 		record.write(serializationBuffer);
 

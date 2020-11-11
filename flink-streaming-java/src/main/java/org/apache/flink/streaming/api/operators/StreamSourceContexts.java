@@ -98,6 +98,10 @@ public class StreamSourceContexts {
 
 		private final Object lock;
 		private final Output<StreamRecord<T>> output;
+
+		/**
+		 * 向下游发送的对象，做到对象重用，避免重复创建对象
+		 */
 		private final StreamRecord<T> reuse;
 
 		private NonTimestampContext(Object checkpointLock, Output<StreamRecord<T>> output) {

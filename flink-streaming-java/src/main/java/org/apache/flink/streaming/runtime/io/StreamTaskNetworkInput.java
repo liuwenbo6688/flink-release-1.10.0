@@ -123,6 +123,7 @@ public final class StreamTaskNetworkInput<T> implements StreamTaskInput<T> {
 
 			/**
 			 *  如果当前反序列化器已被初始化，说明它当前正在反序列化一个记录
+			 *  第一次进来，currentRecordDeserializer 是 null
 			 */
 			if (currentRecordDeserializer != null) {
 
