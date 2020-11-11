@@ -545,6 +545,7 @@ public class SingleInputGate extends InputGate {
 
 	private Optional<InputWithData<InputChannel, BufferAndAvailability>> waitAndGetNextData(boolean blocking)
 			throws IOException, InterruptedException {
+
 		while (true) {
 
 			/**
@@ -588,6 +589,7 @@ public class SingleInputGate extends InputGate {
 				}
 			}
 		}
+
 	}
 
 	private BufferOrEvent transformToBufferOrEvent(

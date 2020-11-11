@@ -162,6 +162,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 
 	/**
 	 * The input processor. Initialized in {@link #init()} method.
+	 * 处理输入数据的组件
 	 */
 	@Nullable
 	protected StreamInputProcessor inputProcessor;
@@ -315,7 +316,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 	protected void processInput(MailboxDefaultAction.Controller controller) throws Exception {
 
 		/**
-		 *
+		 *  转交给StreamInputProcessor处理输入数据
 		 */
 		InputStatus status = inputProcessor.processInput();
 

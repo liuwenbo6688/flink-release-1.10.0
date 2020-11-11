@@ -178,8 +178,13 @@ public class OneInputStreamTask<IN, OUT> extends StreamTask<OUT, OneInputStreamO
 		@Override
 		public void emitRecord(StreamRecord<IN> record) throws Exception {
 			synchronized (lock) {
-				numRecordsIn.inc();
+				numRecordsIn.inc();// 统计计数
+
 				operator.setKeyContextElement1(record);
+
+				/**
+				 *  调用算子的 processElement 方法（用户代码）
+				 */
 				operator.processElement(record);
 			}
 		}

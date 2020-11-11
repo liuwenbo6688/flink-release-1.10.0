@@ -40,7 +40,14 @@ public final class StreamOneInputProcessor<IN> implements StreamInputProcessor {
 
 	private static final Logger LOG = LoggerFactory.getLogger(StreamOneInputProcessor.class);
 
+	/**
+	 *
+	 */
 	private final StreamTaskInput<IN> input;
+
+	/**
+	 *
+	 */
 	private final DataOutput<IN> output;
 
 	private final Object lock;

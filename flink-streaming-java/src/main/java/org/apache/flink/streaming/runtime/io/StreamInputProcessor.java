@@ -25,6 +25,8 @@ import java.io.Closeable;
 
 /**
  * Interface for processing records by {@link org.apache.flink.streaming.runtime.tasks.StreamTask}.
+ *
+ * 处理输入数据的组件
  */
 @Internal
 public interface StreamInputProcessor extends AvailabilityProvider, Closeable {

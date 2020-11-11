@@ -72,6 +72,9 @@ public final class StreamTaskNetworkInput<T> implements StreamTaskInput<T> {
 
 	private int lastChannel = UNSPECIFIED;
 
+	/**
+	 *  实现为 SpillingAdaptiveSpanningRecordDeserializer
+	 */
 	private RecordDeserializer<DeserializationDelegate<StreamElement>> currentRecordDeserializer = null;
 
 	@SuppressWarnings("unchecked")
@@ -117,12 +120,21 @@ public final class StreamTaskNetworkInput<T> implements StreamTaskInput<T> {
 
 		while (true) {
 			// get the stream element from the deserializer
+
+			/**
+			 *  如果当前反序列化器已被初始化，说明它当前正在反序列化一个记录
+			 */
 			if (currentRecordDeserializer != null) {
+
+				// 以当前反序列化器对记录进行反序列化，并返回反序列化结果枚举 DeserializationResult
 				DeserializationResult result = currentRecordDeserializer.getNextRecord(deserializationDelegate);
 
 				/**
 				 * 如果buffer中的数据已经被反序列化完毕
 				 * 调用反序列化器中内存块的 NetworkBuffer.recycleBuffer 方法
+				 *
+				 * 如果获得结果是当前的Buffer已被消费（还不是记录的完整结果），获得当前的Buffer，将其回收，
+				 * 后续会继续反序列化当前记录的剩余数据
 				 */
 				if (result.isBufferConsumed()) {
 					currentRecordDeserializer.getCurrentBuffer().recycleBuffer();
@@ -130,17 +142,26 @@ public final class StreamTaskNetworkInput<T> implements StreamTaskInput<T> {
 				}
 
 				if (result.isFullRecord()) {
+					/**
+					 * 1. 表示记录已被完全消费
+					 * 2. 调用算子处理数据
+					 * 3. 然后返回退出
+					 */
 					processElement(deserializationDelegate.getInstance(), output);
+
 					return InputStatus.MORE_AVAILABLE;
 				}
 			}
 
 			/**
-			 *
+			 *  通过 InputGate 拉取上游operator的数据，表示为BufferOrEvent
 			 */
 			Optional<BufferOrEvent> bufferOrEvent = checkpointedInputGate.pollNext();
 
 			if (bufferOrEvent.isPresent()) {
+				/**
+				 *
+				 */
 				processBufferOrEvent(bufferOrEvent.get());
 			} else {
 				if (checkpointedInputGate.isFinished()) {
@@ -157,6 +178,10 @@ public final class StreamTaskNetworkInput<T> implements StreamTaskInput<T> {
 
 	private void processElement(StreamElement recordOrMark, DataOutput<T> output) throws Exception {
 		if (recordOrMark.isRecord()){
+
+			/**
+			 *  调用算子处理输入数据的逻辑在这
+			 */
 			output.emitRecord(recordOrMark.asRecord());
 		} else if (recordOrMark.isWatermark()) {
 
@@ -178,6 +203,8 @@ public final class StreamTaskNetworkInput<T> implements StreamTaskInput<T> {
 		if (bufferOrEvent.isBuffer()) {
 			lastChannel = bufferOrEvent.getChannelIndex();
 			checkState(lastChannel != StreamTaskInput.UNSPECIFIED);
+
+			// 设置当前的反序列化器，并将当前记录对应的Buffer给反序列化器
 			currentRecordDeserializer = recordDeserializers[lastChannel];
 			checkState(currentRecordDeserializer != null,
 				"currentRecordDeserializer has already been released");

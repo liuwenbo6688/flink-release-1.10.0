@@ -41,6 +41,8 @@ import java.util.Arrays;
 import java.util.Random;
 
 /**
+ * 适用于数据大小相对较大且跨段的记录的反序列化，它支持将溢出的数据写入临时文件
+ *
  * @param <T> The type of the record to be deserialized.
  */
 public class SpillingAdaptiveSpanningRecordDeserializer<T extends IOReadableWritable> implements RecordDeserializer<T> {
