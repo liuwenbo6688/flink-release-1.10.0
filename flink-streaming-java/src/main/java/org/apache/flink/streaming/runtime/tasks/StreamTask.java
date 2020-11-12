@@ -227,6 +227,9 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 	 * @param env The task environment for this task.
 	 */
 	protected StreamTask(Environment env) {
+		/**
+		 * StreamTask 通过反射构建，传入Environment
+		 */
 		this(env, null);
 	}
 

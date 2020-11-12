@@ -104,6 +104,11 @@ public class TaskExecutorResourceUtils {
 	static ResourceProfile generateDefaultSlotResourceProfile(
 			TaskExecutorResourceSpec taskExecutorResourceSpec,
 			int numberOfSlots) {
+
+		/**
+		 *
+		 *
+		 */
 		return ResourceProfile.newBuilder()
 			.setCpuCores(taskExecutorResourceSpec.getCpuCores().divide(numberOfSlots))
 			.setTaskHeapMemory(taskExecutorResourceSpec.getTaskHeapSize().divide(numberOfSlots))

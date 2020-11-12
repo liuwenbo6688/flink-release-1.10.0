@@ -590,8 +590,13 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 				taskRestore,
 				checkpointResponder);
 
+			/**
+			 *  MemoryManager 是管理 Managed Memory(排序、缓存、哈希表) 的类
+			 */
 			MemoryManager memoryManager;
 			try {
+				// 根据之前申请slot返回的allocationId，查询出分配的slot，在拿到slot对应的 MemoryManager
+				//
 				memoryManager = taskSlotTable.getTaskMemoryManager(tdd.getAllocationId());
 			} catch (SlotNotFoundException e) {
 				throw new TaskSubmissionException("Could not submit task.", e);
@@ -600,7 +605,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
 			/**
 			 *   The Task represents one execution of a parallel subtask on a TaskManager.
-			 *   也是一个 Runnable
+			 *   也是一个 Runnable，  其实就是待执行的sub task
 			 */
 			Task task = new Task(
 				jobInformation,
@@ -612,7 +617,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 				tdd.getProducedPartitions(),
 				tdd.getInputGates(),
 				tdd.getTargetSlotNumber(),
-				memoryManager,
+				memoryManager, // 托管内存
 				taskExecutorServices.getIOManager(),
 				taskExecutorServices.getShuffleEnvironment(),
 				taskExecutorServices.getKvStateService(),
@@ -869,6 +874,7 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 
 	/**
 	 *  接收ResourceManager申请slot的请求
+	 *  分配slot
 	 */
 	@Override
 	public CompletableFuture<Acknowledge> requestSlot(
@@ -891,10 +897,15 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 				throw new TaskManagerException(message);
 			}
 
-			if (taskSlotTable.isSlotFree(slotId.getSlotNumber())) {
+
+			// *********************************************************************************************************
+			if (taskSlotTable.isSlotFree(slotId.getSlotNumber())) { // 索引号下没有slot，说明是空闲的
 
 				/**
-				 * 如果slot是空闲的，直接分配
+				 * *********************************************************
+				 *     如果slot是空闲的，直接分配
+				 *
+				 * *********************************************************
 				 */
 				if (taskSlotTable.allocateSlot(slotId.getSlotNumber(), jobId, allocationId, resourceProfile, taskManagerConfiguration.getTimeout())) {
 					log.info("Allocated slot for {}.", allocationId);
@@ -918,6 +929,8 @@ public class TaskExecutor extends RpcEndpoint implements TaskExecutorGateway {
 				throw new SlotOccupiedException(message, allocationID, taskSlotTable.getOwningJob(allocationID));
 			}
 
+
+			// *********************************************************************************************************
 			if (jobManagerTable.contains(jobId)) {
 				/**
 				 * 远程调用, 通知jobMaster

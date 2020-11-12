@@ -178,7 +178,7 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 	private final Collection<URL> requiredClasspaths;
 
 	/** The name of the class that holds the invokable code. */
-	private final String nameOfInvokableClass;
+	private final String nameOfInvokableClass;// AbstractInvokable
 
 	/** Access to task manager configuration and host names. */
 	private final TaskManagerRuntimeInfo taskManagerConfig;
@@ -683,6 +683,9 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 
 			TaskKvStateRegistry kvStateRegistry = kvStateService.createKvStateTaskRegistry(jobId, getJobVertexId());
 
+			/**
+			 * 创建一个运行时环境，传递给 StreamTask
+			 */
 			Environment env = new RuntimeEnvironment(
 				jobId,
 				vertexId,
@@ -715,7 +718,14 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 			executingThread.setContextClassLoader(userCodeClassLoader);
 
 			// now load and instantiate the task's invokable code
-			invokable = loadAndInstantiateInvokable(userCodeClassLoader, nameOfInvokableClass, env);
+			/**
+			 *  通过反射调用 StreamTask的构造方法，实例化  StreamTask(AbstractInvokable)
+			 */
+			invokable = loadAndInstantiateInvokable(
+					userCodeClassLoader,
+					nameOfInvokableClass,
+					env /* 重要变量*/
+			);
 
 			// ----------------------------------------------------------------
 			//  actual task core work
@@ -1335,6 +1345,10 @@ public class Task implements Runnable, TaskSlotPayload, TaskActions, PartitionPr
 		Constructor<? extends AbstractInvokable> statelessCtor;
 
 		try {
+			/**
+			 *  去到 StreamTask(Environment env) 的构造方法
+			 *  或者 SourceStreamTask(Environment env) 的构造方法
+			 */
 			statelessCtor = invokableClass.getConstructor(Environment.class);
 		} catch (NoSuchMethodException ee) {
 			throw new FlinkException("Task misses proper constructor", ee);

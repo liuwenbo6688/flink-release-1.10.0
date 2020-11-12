@@ -291,9 +291,14 @@ public class TaskManagerServices {
 			new ScheduledThreadPoolExecutor(1),
 			timerServiceShutdownTimeout);
 
+
+		/**
+		 *
+		 */
 		return new TaskSlotTableImpl<>(
 			numberOfSlots,
 			TaskExecutorResourceUtils.generateTotalAvailableResourceProfile(taskExecutorResourceSpec),
+			// 针对slot的资源隔离，把总资源平均分配给numberOfSlots个slot
 			TaskExecutorResourceUtils.generateDefaultSlotResourceProfile(taskExecutorResourceSpec, numberOfSlots),
 			pageSize,
 			timerService);

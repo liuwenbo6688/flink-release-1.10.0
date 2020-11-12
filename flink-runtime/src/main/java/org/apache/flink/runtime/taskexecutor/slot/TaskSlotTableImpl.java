@@ -72,6 +72,9 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 	private final int numberSlots;
 
 	/** Slot resource profile for static slot allocation. */
+	/**
+	 *  分配给一个slot的资源信息
+	 */
 	private final ResourceProfile defaultSlotResourceProfile;
 
 	/**
@@ -92,12 +95,16 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 	private final Map<Integer, TaskSlot<T>> taskSlots;
 
 	/** Mapping from allocation id to task slot. */
+	/**
+	 *  本TaskExecutor所有已经分配的task slot列表
+	 */
 	private final Map<AllocationID, TaskSlot<T>> allocatedSlots;
 
 	/** Mapping from execution attempt id to task and task slot. */
 	private final Map<ExecutionAttemptID, TaskSlotMapping<T>> taskSlotMappings;
 
 	/** Mapping from job id to allocated slots for a job. */
+	// 每个job分配的 Slot 列表
 	private final Map<JobID, Set<AllocationID>> slotsPerJob;
 
 	/** Interface for slot actions, such as freeing them or timing them out. */
@@ -131,13 +138,21 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 		this.numberSlots = numberSlots;
 
 
+		/**
+		 *  分配给一个slot的资源信息
+		 */
 		this.defaultSlotResourceProfile = Preconditions.checkNotNull(defaultSlotResourceProfile);
+
+
 		this.memoryPageSize = memoryPageSize;
 
 		this.taskSlots = new HashMap<>(numberSlots);
 
 		this.timerService = Preconditions.checkNotNull(timerService);
 
+		/**
+		 * 用分配给 Taskmanager 总的资源信息， 构造一个 ResourceBudgetManager组件
+		 */
 		budgetManager = new ResourceBudgetManager(Preconditions.checkNotNull(totalAvailableResourceProfile));
 
 		allocatedSlots = new HashMap<>(numberSlots);
@@ -572,7 +587,9 @@ public class TaskSlotTableImpl<T extends TaskSlotPayload> implements TaskSlotTab
 
 	@Override
 	public MemoryManager getTaskMemoryManager(AllocationID allocationID) throws SlotNotFoundException {
+		// 查询分配的slot
 		TaskSlot<T> taskSlot = getTaskSlot(allocationID);
+
 		if (taskSlot != null) {
 			return taskSlot.getMemoryManager();
 		} else {

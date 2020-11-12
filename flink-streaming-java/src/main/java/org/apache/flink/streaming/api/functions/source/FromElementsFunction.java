@@ -64,7 +64,7 @@ public class FromElementsFunction<T> implements SourceFunction<T>, CheckpointedF
 	private final int numElements;
 
 	/** The number of elements emitted already. */
-	private volatile int numElementsEmitted;
+	private volatile int numElementsEmitted; // 记录已经发送的数据数
 
 	/** The number of elements to skip initially. */
 	private volatile int numElementsToSkip;
@@ -72,6 +72,9 @@ public class FromElementsFunction<T> implements SourceFunction<T>, CheckpointedF
 	/** Flag to make the source cancelable. */
 	private volatile boolean isRunning = true;
 
+	/**
+	 * 保存发送数据量的状态变量  ListState
+	 */
 	private transient ListState<Integer> checkpointedState;
 
 	public FromElementsFunction(TypeSerializer<T> serializer, T... elements) throws IOException {
@@ -120,6 +123,10 @@ public class FromElementsFunction<T> implements SourceFunction<T>, CheckpointedF
 			Preconditions.checkArgument(retrievedStates.size() == 1,
 				getClass().getSimpleName() + " retrieved invalid state.");
 
+
+			/**
+			 * 将存恢复的状态值赋给 numElementsToSkip，表示跳过 numElementsToSkip 个元素开始消费数据
+			 */
 			this.numElementsToSkip = retrievedStates.get(0);
 		}
 	}
@@ -201,6 +208,8 @@ public class FromElementsFunction<T> implements SourceFunction<T>, CheckpointedF
 			"The " + getClass().getSimpleName() + " has not been properly initialized.");
 
 		this.checkpointedState.clear();
+
+		// 在snapshotState时将状态数据存储到state中
 		this.checkpointedState.add(this.numElementsEmitted);
 	}
 

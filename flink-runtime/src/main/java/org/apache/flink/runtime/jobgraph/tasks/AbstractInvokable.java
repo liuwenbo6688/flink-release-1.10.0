@@ -59,6 +59,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 public abstract class AbstractInvokable {
 
 	/** The environment assigned to this invokable. */
+
 	private final Environment environment;
 
 	/** Flag whether cancellation should interrupt the executing thread. */

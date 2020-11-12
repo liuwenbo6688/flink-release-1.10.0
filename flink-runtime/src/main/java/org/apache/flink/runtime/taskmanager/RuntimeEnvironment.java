@@ -124,8 +124,18 @@ public class RuntimeEnvironment implements Environment {
 		this.jobConfiguration = checkNotNull(jobConfiguration);
 		this.taskConfiguration = checkNotNull(taskConfiguration);
 		this.userCodeClassLoader = checkNotNull(userCodeClassLoader);
+
+		/**
+		 *
+		 */
 		this.memManager = checkNotNull(memManager);
+
+		/**
+		 *
+		 */
 		this.ioManager = checkNotNull(ioManager);
+
+
 		this.bcVarManager = checkNotNull(bcVarManager);
 		this.taskStateManager = checkNotNull(taskStateManager);
 		this.aggregateManager = checkNotNull(aggregateManager);
@@ -133,10 +143,27 @@ public class RuntimeEnvironment implements Environment {
 		this.kvStateRegistry = checkNotNull(kvStateRegistry);
 		this.splitProvider = checkNotNull(splitProvider);
 		this.distCacheEntries = checkNotNull(distCacheEntries);
+
+		/**
+		 *
+		 */
 		this.writers = checkNotNull(writers);
+
+
+		/**
+		 *
+		 */
 		this.inputGates = checkNotNull(inputGates);
+
+
 		this.taskEventDispatcher = checkNotNull(taskEventDispatcher);
+
+		/**
+		 *
+		 */
 		this.checkpointResponder = checkNotNull(checkpointResponder);
+
+
 		this.taskManagerInfo = checkNotNull(taskManagerInfo);
 		this.containingTask = containingTask;
 		this.metrics = metrics;
