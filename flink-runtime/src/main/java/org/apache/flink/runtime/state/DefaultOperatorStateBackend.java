@@ -105,6 +105,7 @@ public class DefaultOperatorStateBackend implements OperatorStateBackend {
 		Map<String, PartitionableListState<?>> accessedStatesByName,
 		Map<String, BackendWritableBroadcastState<?, ?>> accessedBroadcastStatesByName,
 		AbstractSnapshotStrategy<OperatorStateHandle> snapshotStrategy) {
+
 		this.closeStreamOnCancelRegistry = closeStreamOnCancelRegistry;
 		this.executionConfig = executionConfig;
 		this.registeredOperatorStates = registeredOperatorStates;

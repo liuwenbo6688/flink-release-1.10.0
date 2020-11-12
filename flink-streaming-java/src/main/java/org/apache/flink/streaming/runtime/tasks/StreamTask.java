@@ -171,6 +171,9 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 	protected OP headOperator;
 
 	/** The chain of operators executed by this task. */
+	/**
+	 * 此task中chain在一起的operator
+	 */
 	protected OperatorChain<OUT, OP> operatorChain;
 
 	/** The configuration of this streaming task. */

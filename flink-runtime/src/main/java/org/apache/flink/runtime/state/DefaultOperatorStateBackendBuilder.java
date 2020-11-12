@@ -62,6 +62,7 @@ public class DefaultOperatorStateBackendBuilder implements
 
 	@Override
 	public DefaultOperatorStateBackend build() throws BackendBuildingException {
+
 		Map<String, PartitionableListState<?>> registeredOperatorStates = new HashMap<>();
 		Map<String, BackendWritableBroadcastState<?, ?>> registeredBroadcastStates = new HashMap<>();
 		CloseableRegistry cancelStreamRegistryForBackend = new CloseableRegistry();

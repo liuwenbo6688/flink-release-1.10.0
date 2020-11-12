@@ -55,6 +55,7 @@ public abstract class AbstractStateBackend implements StateBackend, java.io.Seri
 	//  State Backend - State-Holding Backends
 	// ------------------------------------------------------------------------
 
+	// 建一个keyed state backend用来管理keyed state
 	@Override
 	public abstract <K> AbstractKeyedStateBackend<K> createKeyedStateBackend(
 		Environment env,
@@ -69,6 +70,7 @@ public abstract class AbstractStateBackend implements StateBackend, java.io.Seri
 		@Nonnull Collection<KeyedStateHandle> stateHandles,
 		CloseableRegistry cancelStreamRegistry) throws IOException;
 
+	// 创建一个OperateStateBackend
 	@Override
 	public abstract OperatorStateBackend createOperatorStateBackend(
 		Environment env,

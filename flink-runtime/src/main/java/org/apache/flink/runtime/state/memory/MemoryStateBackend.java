@@ -107,7 +107,9 @@ public class MemoryStateBackend extends AbstractFileStateBackend implements Conf
 
 	private static final long serialVersionUID = 4109305377809414635L;
 
-	/** The default maximal size that the snapshotted memory state may have (5 MiBytes). */
+	/** The default maximal size that the snapshotted memory state may have (5 MiBytes).
+	 *  默认最大的状态snapshot就是 5M，所以MemoryStateBackend只适合调试的时候使用
+	 * */
 	public static final int DEFAULT_MAX_STATE_SIZE = 5 * 1024 * 1024;
 
 	/** The maximal size that the snapshotted memory state may have. */
@@ -299,6 +301,10 @@ public class MemoryStateBackend extends AbstractFileStateBackend implements Conf
 	//  state holding structures
 	// ------------------------------------------------------------------------
 
+
+	/*
+	 * 创建一个 OperateStateBackend
+	 */
 	@Override
 	public OperatorStateBackend createOperatorStateBackend(
 		Environment env,
@@ -306,6 +312,9 @@ public class MemoryStateBackend extends AbstractFileStateBackend implements Conf
 		@Nonnull Collection<OperatorStateHandle> stateHandles,
 		CloseableRegistry cancelStreamRegistry) throws Exception {
 
+		/**
+		 * 创建 DefaultOperatorStateBackend
+		 */
 		return new DefaultOperatorStateBackendBuilder(
 			env.getUserClassLoader(),
 			env.getExecutionConfig(),
@@ -314,6 +323,10 @@ public class MemoryStateBackend extends AbstractFileStateBackend implements Conf
 			cancelStreamRegistry).build();
 	}
 
+
+	/*
+	 * 创建一个keyed state backend用来管理keyed state
+	 */
 	@Override
 	public <K> AbstractKeyedStateBackend<K> createKeyedStateBackend(
 		Environment env,
