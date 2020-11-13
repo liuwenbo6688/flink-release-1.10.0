@@ -299,6 +299,11 @@ public class HeapKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 
 		long startTime = System.currentTimeMillis();
 
+		/**
+		 * 做异步快照
+		 *
+		 * HeapSnapshotStrategy
+		 */
 		final RunnableFuture<SnapshotResult<KeyedStateHandle>> snapshotRunner =
 			snapshotStrategy.snapshot(checkpointId, timestamp, streamFactory, checkpointOptions);
 

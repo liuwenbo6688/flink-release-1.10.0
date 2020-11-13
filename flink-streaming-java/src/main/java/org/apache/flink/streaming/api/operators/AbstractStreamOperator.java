@@ -135,8 +135,13 @@ public abstract class AbstractStreamOperator<OUT>
 	 */
 	private transient KeySelector<?, ?> stateKeySelector2;
 
+
+	/**
+	 * 算子对应的  keyedStateBackend
+	 */
 	/** Backend for keyed state. This might be empty if we're not on a keyed stream. */
 	private transient AbstractKeyedStateBackend<?> keyedStateBackend;
+
 
 	/** Keyed state store view on the keyed backend. */
 	private transient DefaultKeyedStateStore keyedStateStore;
@@ -144,6 +149,9 @@ public abstract class AbstractStreamOperator<OUT>
 	// ---------------- operator state ------------------
 
 	/** Operator state backend / store. */
+	/**
+	 * 算子对应的  operatorStateBackend
+	 */
 	private transient OperatorStateBackend operatorStateBackend;
 
 	// --------------- Metrics ---------------------------
@@ -386,6 +394,10 @@ public abstract class AbstractStreamOperator<OUT>
 	public final OperatorSnapshotFutures snapshotState(long checkpointId, long timestamp, CheckpointOptions checkpointOptions,
 			CheckpointStreamFactory factory) throws Exception {
 
+
+		/**
+		 *  1. 拿到 keyedState 的 Key Group
+		 */
 		KeyGroupRange keyGroupRange = null != keyedStateBackend ?
 				keyedStateBackend.getKeyGroupRange() : KeyGroupRange.EMPTY_KEY_GROUP_RANGE;
 
@@ -399,21 +411,50 @@ public abstract class AbstractStreamOperator<OUT>
 			getContainingTask().getCancelables());
 
 		try {
+
+			/**
+			 * 2. 调用用户函数的 snapshotState
+			 * 主要是快照用户编写的代码中用到的状态, 实现 CheckpointedFunction 、ListCheckpointed
+			 * 看 AbstractUdfStreamOperator.snapshotState
+			 */
 			snapshotState(snapshotContext);
 
+			/**
+			 * 原生状态（Raw State）
+			 * 不是我们关注的重点，官方也不推荐使用
+			 */
 			snapshotInProgress.setKeyedStateRawFuture(snapshotContext.getKeyedStateStreamFuture());
 			snapshotInProgress.setOperatorStateRawFuture(snapshotContext.getOperatorStateStreamFuture());
 
+			/**
+			 * 托管状态（Managed State）
+			 * 比较推荐的做法
+			 */
 			if (null != operatorStateBackend) {
 				snapshotInProgress.setOperatorStateManagedFuture(
-					operatorStateBackend.snapshot(checkpointId, timestamp, factory, checkpointOptions));
+					/**
+					 *  3.operator state 的快照
+					 *  走 DefaultOperatorStateBackend
+					 */
+					operatorStateBackend.snapshot(checkpointId, timestamp, factory, checkpointOptions)
+				);
 			}
 
 			if (null != keyedStateBackend) {
 				snapshotInProgress.setKeyedStateManagedFuture(
-					keyedStateBackend.snapshot(checkpointId, timestamp, factory, checkpointOptions));
+					/**
+					 * 4. keyed state 的快照
+					 * memory backend 和 fs backend: HeapKeyedStateBackend
+					 * rocksdb backend : RocksDBKeyedStateBackend
+					 */
+					keyedStateBackend.snapshot(checkpointId, timestamp, factory, checkpointOptions)
+				);
 			}
+
 		} catch (Exception snapshotException) {
+			/**
+			 * 异常处理
+			 */
 			try {
 				snapshotInProgress.cancel();
 			} catch (Exception e) {

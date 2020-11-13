@@ -42,6 +42,7 @@ public final class PartitionableListState<S> implements ListState<S> {
 
 	/**
 	 * The internal list the holds the elements of the state
+	 * 存储状态元素的内部列表
 	 */
 	private final ArrayList<S> internalList;
 
@@ -113,6 +114,14 @@ public final class PartitionableListState<S> implements ListState<S> {
 		for (int i = 0; i < internalList.size(); ++i) {
 			S element = internalList.get(i);
 			partitionOffsets[i] = out.getPos();
+
+			/**
+			 * 先到这为止，不能再继续看下去了
+			 *
+			 *  检查点的输出流
+			 *  基于内存 : MemoryCheckpointOutputStream
+			 *  基于fs  : FsCheckpointStateOutputStream
+			 */
 			getStateMetaInfo().getPartitionStateSerializer().serialize(element, dov);
 		}
 

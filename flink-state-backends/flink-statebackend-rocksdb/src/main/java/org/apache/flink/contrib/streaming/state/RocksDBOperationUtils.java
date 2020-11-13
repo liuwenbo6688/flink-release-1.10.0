@@ -140,7 +140,15 @@ public class RocksDBOperationUtils {
 		if (ttlCompactFiltersManager != null) {
 			ttlCompactFiltersManager.setAndRegisterCompactFilterIfStateTtl(metaInfoBase, options);
 		}
+
+		/**
+		 * *******************************
+		 * 这里是一个非常重要的地方
+		 * RocksDb列族的名称，就是state的name
+		 * *******************************
+		 */
 		byte[] nameBytes = metaInfoBase.getName().getBytes(ConfigConstants.DEFAULT_CHARSET);
+
 		Preconditions.checkState(!Arrays.equals(RocksDB.DEFAULT_COLUMN_FAMILY, nameBytes),
 			"The chosen state name 'default' collides with the name of the default column family!");
 

@@ -27,6 +27,10 @@ import javax.annotation.Nonnull;
 public class LocalRecoveryConfig {
 
 	/** The local recovery mode. */
+	/**
+	 * state.backend.local-recovery
+	 * 是否开启state本地恢复策略
+	 */
 	private final boolean localRecoveryEnabled;
 
 	/** Encapsulates the root directories and the subtask-specific path. */

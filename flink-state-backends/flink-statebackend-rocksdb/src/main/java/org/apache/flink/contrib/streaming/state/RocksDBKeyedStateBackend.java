@@ -114,6 +114,14 @@ public class RocksDBKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 	@SuppressWarnings("deprecation")
 	private static final Map<Class<? extends StateDescriptor>, StateFactory> STATE_FACTORIES =
 		Stream.of(
+				/**
+				 *  ValueStateDescriptor       ---->     RocksDBValueState
+				 *  ListStateDescriptor        ---->     RocksDBListState
+				 *  MapStateDescriptor          ---->    RocksDBMapState
+				 *  AggregatingStateDescriptor  ---->    RocksDBAggregatingState
+				 *  ReducingStateDescriptor     ---->    RocksDBReducingState
+				 *  FoldingStateDescriptor      ---->    RocksDBFoldingState
+				 */
 			Tuple2.of(ValueStateDescriptor.class, (StateFactory) RocksDBValueState::create),
 			Tuple2.of(ListStateDescriptor.class, (StateFactory) RocksDBListState::create),
 			Tuple2.of(MapStateDescriptor.class, (StateFactory) RocksDBMapState::create),
@@ -129,7 +137,9 @@ public class RocksDBKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 			RocksDBKeyedStateBackend<K> backend) throws Exception;
 	}
 
-	/** Factory function to create column family options from state name. */
+	/** Factory function to create column family options from state name.
+	 *  创建column family 的工厂函数
+	 * */
 	private final Function<String, ColumnFamilyOptions> columnFamilyOptionsFactory;
 
 	/** The container of RocksDB option factory and predefined options. */
@@ -194,6 +204,7 @@ public class RocksDBKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 	 * Our RocksDB database, this is used by the actual subclasses of {@link AbstractRocksDBState}
 	 * to store state. The different k/v states that we have don't each have their own RocksDB
 	 * instance. They all write to this instance but to their own column family.
+	 * 嵌入RocksDB短息那个，操作 RocksDB数据库
 	 */
 	protected final RocksDB db;
 
@@ -439,13 +450,27 @@ public class RocksDBKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 		long startTime = System.currentTimeMillis();
 
 		// flush everything into db before taking a snapshot
+		// snapshot 之前先要刷盘
 		writeBatchWrapper.flush();
 
+
+		/**
+		 * RocksDBSnapshotStrategyBase
+		 */
+
+		// 根据 savepoint 还是 checkpoint(以及是否开启增量 checkpoint)获取 SnapshotStrategy
 		RocksDBSnapshotStrategyBase<K> chosenSnapshotStrategy =
 				checkpointOptions.getCheckpointType().isSavepoint() ? savepointSnapshotStrategy : checkpointSnapshotStrategy;
 
+		/**
+		 * **************
+		 * rocksdb 做快照
+		 * **************
+		 */
 		RunnableFuture<SnapshotResult<KeyedStateHandle>> snapshotRunner =
 			chosenSnapshotStrategy.snapshot(checkpointId, timestamp, streamFactory, checkpointOptions);
+
+
 
 		chosenSnapshotStrategy.logSyncCompleted(streamFactory, startTime);
 
@@ -643,6 +668,7 @@ public class RocksDBKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 		@Nonnull TypeSerializer<N> namespaceSerializer,
 		@Nonnull StateDescriptor<S, SV> stateDesc,
 		@Nonnull StateSnapshotTransformFactory<SEV> snapshotTransformFactory) throws Exception {
+
 		StateFactory stateFactory = STATE_FACTORIES.get(stateDesc.getClass());
 		if (stateFactory == null) {
 			String message = String.format("State %s is not supported by %s",
@@ -651,6 +677,10 @@ public class RocksDBKeyedStateBackend<K> extends AbstractKeyedStateBackend<K> {
 		}
 		Tuple2<ColumnFamilyHandle, RegisteredKeyValueStateBackendMetaInfo<N, SV>> registerResult = tryRegisterKvStateInformation(
 			stateDesc, namespaceSerializer, snapshotTransformFactory);
+
+		/**
+		 *
+		 */
 		return stateFactory.createState(stateDesc, registerResult, RocksDBKeyedStateBackend.this);
 	}
 

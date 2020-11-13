@@ -64,11 +64,28 @@ class HeapSnapshotStrategy<K>
 	extends AbstractSnapshotStrategy<KeyedStateHandle> implements SnapshotStrategySynchronicityBehavior<K> {
 
 	private final SnapshotStrategySynchronicityBehavior<K> snapshotStrategySynchronicityTrait;
+
+	/**
+	 *
+	 */
 	private final Map<String, StateTable<K, ?, ?>> registeredKVStates;
+
+	/**
+	 *
+	 */
 	private final Map<String, HeapPriorityQueueSnapshotRestoreWrapper> registeredPQStates;
+
+
 	private final StreamCompressionDecorator keyGroupCompressionDecorator;
 	private final LocalRecoveryConfig localRecoveryConfig;
+
+	/**
+	 * Key Group是Keyed State分配的原子单位，且Flink作业内Key Group的数量与最大并行度相同，
+	 * 也就是说Key Group的索引位于[0, maxParallelism - 1]的区间内。
+	 */
 	private final KeyGroupRange keyGroupRange;
+
+
 	private final CloseableRegistry cancelStreamRegistry;
 	private final StateSerializerProvider<K> keySerializerProvider;
 
@@ -110,11 +127,19 @@ class HeapSnapshotStrategy<K>
 			"Too many states: " + numStates +
 				". Currently at most " + Short.MAX_VALUE + " states are supported");
 
+
+		/**
+		 * 获取state的所有元数据信息
+		 */
 		final List<StateMetaInfoSnapshot> metaInfoSnapshots = new ArrayList<>(numStates);
-		final Map<StateUID, Integer> stateNamesToId =
-			new HashMap<>(numStates);
-		final Map<StateUID, StateSnapshot> cowStateStableSnapshots =
-			new HashMap<>(numStates);
+
+		final Map<StateUID, Integer> stateNamesToId = new HashMap<>(numStates);
+
+		/**
+		 *  注册的所有 keyed state 的快照
+		 */
+		final Map<StateUID, StateSnapshot> cowStateStableSnapshots = new HashMap<>(numStates);
+
 
 		processSnapshotMetaInfoForAllStates(
 			metaInfoSnapshots,
@@ -138,6 +163,11 @@ class HeapSnapshotStrategy<K>
 				metaInfoSnapshots,
 				!Objects.equals(UncompressedStreamCompressionDecorator.INSTANCE, keyGroupCompressionDecorator));
 
+
+		/**
+		 *
+		 * 根据是否开启了本地恢复策略(state.backend.local-recovery,默认为 false)，创建不同的 checkpoint output stream
+		 */
 		final SupplierWithException<CheckpointStreamWithResultProvider, Exception> checkpointStreamSupplier =
 
 			localRecoveryConfig.isLocalRecoveryEnabled() ?
@@ -152,6 +182,8 @@ class HeapSnapshotStrategy<K>
 					CheckpointedStateScope.EXCLUSIVE,
 					primaryStreamFactory);
 
+
+
 		//--------------------------------------------------- this becomes the end of sync part
 
 		final AsyncSnapshotCallable<SnapshotResult<KeyedStateHandle>> asyncSnapshotCallable =
@@ -159,36 +191,47 @@ class HeapSnapshotStrategy<K>
 				@Override
 				protected SnapshotResult<KeyedStateHandle> callInternal() throws Exception {
 
-					final CheckpointStreamWithResultProvider streamWithResultProvider =
-						checkpointStreamSupplier.get();
-
+					/**
+					 *  拿到 state 的输出流
+					 */
+					final CheckpointStreamWithResultProvider streamWithResultProvider = checkpointStreamSupplier.get();
 					snapshotCloseableRegistry.registerCloseable(streamWithResultProvider);
-
-					final CheckpointStreamFactory.CheckpointStateOutputStream localStream =
-						streamWithResultProvider.getCheckpointOutputStream();
+					final CheckpointStreamFactory.CheckpointStateOutputStream localStream = streamWithResultProvider.getCheckpointOutputStream();
 
 					final DataOutputViewStreamWrapper outView = new DataOutputViewStreamWrapper(localStream);
 					serializationProxy.write(outView);
 
+					// GroupRange区间有多少 key-groups
 					final long[] keyGroupRangeOffsets = new long[keyGroupRange.getNumberOfKeyGroups()];
 
 					for (int keyGroupPos = 0; keyGroupPos < keyGroupRange.getNumberOfKeyGroups(); ++keyGroupPos) {
+						/**
+						 *  循环遍历每一个 key-group
+						 */
 						int keyGroupId = keyGroupRange.getKeyGroupId(keyGroupPos);
 						keyGroupRangeOffsets[keyGroupPos] = localStream.getPos();
 						outView.writeInt(keyGroupId);
 
-						for (Map.Entry<StateUID, StateSnapshot> stateSnapshot :
-							cowStateStableSnapshots.entrySet()) {
-							StateSnapshot.StateKeyGroupWriter partitionedSnapshot =
+						for (Map.Entry<StateUID, StateSnapshot> stateSnapshot : cowStateStableSnapshots.entrySet()) {
 
-								stateSnapshot.getValue().getKeyGroupWriter();
+							StateSnapshot.StateKeyGroupWriter partitionedSnapshot = stateSnapshot.getValue().getKeyGroupWriter();
 							try (
+
+								// 根据配置(execution.checkpointing.snapshot-compression,默认 false，不压缩) 获取压缩/未压缩流
 								OutputStream kgCompressionOut =
 									keyGroupCompressionDecorator.decorateWithCompression(localStream)) {
 								DataOutputViewStreamWrapper kgCompressionView =
 									new DataOutputViewStreamWrapper(kgCompressionOut);
+
+								// 写入 stateId
 								kgCompressionView.writeShort(stateNamesToId.get(stateSnapshot.getKey()));
+
+								/**
+								 *  Writes the data for the specified key-group to the output
+								 *  写入当前 keyGroup 下的 state
+								 */
 								partitionedSnapshot.writeStateInKeyGroup(kgCompressionView, keyGroupId);
+
 							} // this will just close the outer compression stream
 						}
 					}
@@ -255,7 +298,15 @@ class HeapSnapshotStrategy<K>
 			stateNamesToId.put(stateUid, stateNamesToId.size());
 			StateSnapshotRestore state = kvState.getValue();
 			if (null != state) {
+
+				/**
+				 *
+				 */
 				final StateSnapshot stateSnapshot = state.stateSnapshot();
+
+				/**
+				 *
+				 */
 				metaInfoSnapshots.add(stateSnapshot.getMetaInfoSnapshot());
 				cowStateStableSnapshots.put(stateUid, stateSnapshot);
 			}

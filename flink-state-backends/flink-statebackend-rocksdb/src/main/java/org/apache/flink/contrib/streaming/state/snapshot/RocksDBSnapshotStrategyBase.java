@@ -116,6 +116,11 @@ public abstract class RocksDBSnapshotStrategyBase<K>
 		@Nonnull CheckpointStreamFactory streamFactory,
 		@Nonnull CheckpointOptions checkpointOptions) throws Exception {
 
+		/**
+		 *  判断有无 keyed state 需要处理；
+		 *  如果没有，直接返回空的 SnapshotResult；
+		 *  否则进入 RocksFullSnapshotStrategy(全量) 或 RocksIncrementalSnapshotStrategy（增量） 的 doSnapshot() 方法
+		 */
 		if (kvStateInformation.isEmpty()) {
 			if (LOG.isDebugEnabled()) {
 				LOG.debug("Asynchronous RocksDB snapshot performed on empty keyed state at {}. Returning null.",
@@ -123,6 +128,11 @@ public abstract class RocksDBSnapshotStrategyBase<K>
 			}
 			return DoneFuture.of(SnapshotResult.empty());
 		} else {
+
+			/**
+			 *  RocksFullSnapshotStrategy (全量快照策略)
+			 *  RocksIncrementalSnapshotStrategy（增量快照策略）
+			 */
 			return doSnapshot(checkpointId, timestamp, streamFactory, checkpointOptions);
 		}
 	}

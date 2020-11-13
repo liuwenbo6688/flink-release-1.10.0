@@ -110,7 +110,10 @@ abstract class AbstractStateTableSnapshot<K, N, S>
 	 */
 	@Override
 	public void writeStateInKeyGroup(@Nonnull DataOutputView dov, int keyGroupId) throws IOException {
+
+
 		StateMapSnapshot<K, N, S, ? extends StateMap<K, N, S>> stateMapSnapshot = getStateMapSnapshotForKeyGroup(keyGroupId);
+
 		stateMapSnapshot.writeState(localKeySerializer, localNamespaceSerializer, localStateSerializer, dov, stateSnapshotTransformer);
 		stateMapSnapshot.release();
 	}

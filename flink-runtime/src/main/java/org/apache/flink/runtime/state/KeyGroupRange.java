@@ -26,6 +26,11 @@ import java.util.Iterator;
 /**
  * This class defines a range of key-group indexes. Key-groups are the granularity into which the keyspace of a job
  * is partitioned for keyed state-handling in state backends. The boundaries of the range are inclusive.
+ *
+ * Key Group是Keyed State分配的原子单位，且Flink作业内Key Group的数量与最大并行度相同，也就是说Key Group的索引位于[0, maxParallelism - 1]的区间内。
+ * 每个Sub-Task都会处理一个到多个Key Group，在源码中，以KeyGroupRange 数据结构来表示。
+ *
+ * 注意 startKeyGroup 和 endKeyGroup 实际上指的是Key Group的索引，并且是闭区间
  */
 public class KeyGroupRange implements KeyGroupsList, Serializable {
 

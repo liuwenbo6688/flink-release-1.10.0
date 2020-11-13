@@ -77,6 +77,7 @@ public class MemCheckpointStreamFactory implements CheckpointStreamFactory {
 
 		private final ByteArrayOutputStreamWithPos os = new ByteArrayOutputStreamWithPos();
 
+		// 写入的最大字节数
 		private final int maxSize;
 
 		private AtomicBoolean closed;

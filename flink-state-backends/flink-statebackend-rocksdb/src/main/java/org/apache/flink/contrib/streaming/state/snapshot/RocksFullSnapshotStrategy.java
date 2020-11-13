@@ -76,6 +76,8 @@ import static org.apache.flink.contrib.streaming.state.snapshot.RocksSnapshotUti
  * RocksDB snapshot of the column families.
  *
  * @param <K> type of the backend keys.
+ *
+ * RocksFullSnapshotStrategy 是基于 RocksDB 的全量快照策略
  */
 public class RocksFullSnapshotStrategy<K> extends RocksDBSnapshotStrategyBase<K> {
 
@@ -117,9 +119,20 @@ public class RocksFullSnapshotStrategy<K> extends RocksDBSnapshotStrategyBase<K>
 		@Nonnull CheckpointStreamFactory primaryStreamFactory,
 		@Nonnull CheckpointOptions checkpointOptions) throws Exception {
 
+		/**
+		 *  获取 checkpoint output stream，根据是否开启本地恢复，决定具体的实现类。
+		 *  至少会创建一个 FsCheckpointStateOutputStream。如果开启本地恢复，还会创建一个 FileBasedStateOutputStream
+		 */
 		final SupplierWithException<CheckpointStreamWithResultProvider, Exception> checkpointStreamSupplier =
 			createCheckpointStreamSupplier(checkpointId, primaryStreamFactory, checkpointOptions);
 
+
+		/**
+		 * 获取state的所有元数据信息
+		 * （state 名称/state 类型(VALUE LIST MAP...)/BackendState 类型(KEY_VALUE)/state namespace、value 序列化器/snapshot 配置等）
+		 *
+		 * 注册的所有 keyed state
+		 */
 		final List<StateMetaInfoSnapshot> stateMetaInfoSnapshots = new ArrayList<>(kvStateInformation.size());
 		final List<RocksDbKvStateInfo> metaDataCopy =
 			new ArrayList<>(kvStateInformation.size());
@@ -133,6 +146,11 @@ public class RocksFullSnapshotStrategy<K> extends RocksDBSnapshotStrategyBase<K>
 		final ResourceGuard.Lease lease = rocksDBResourceGuard.acquireResource();
 		final Snapshot snapshot = db.getSnapshot();
 
+
+		/**
+		 * 异步快照，实际调用的是
+		 * SnapshotAsynchronousPartCallable.callInternal()
+		 */
 		final SnapshotAsynchronousPartCallable asyncSnapshotCallable =
 			new SnapshotAsynchronousPartCallable(
 				checkpointStreamSupplier,
@@ -211,6 +229,10 @@ public class RocksFullSnapshotStrategy<K> extends RocksDBSnapshotStrategyBase<K>
 			this.logPathString = logPathString;
 		}
 
+
+		/**
+		 *
+		 */
 		@Override
 		protected SnapshotResult<KeyedStateHandle> callInternal() throws Exception {
 			final KeyGroupRangeOffsets keyGroupRangeOffsets = new KeyGroupRangeOffsets(keyGroupRange);
@@ -218,9 +240,20 @@ public class RocksFullSnapshotStrategy<K> extends RocksDBSnapshotStrategyBase<K>
 				checkpointStreamSupplier.get();
 
 			snapshotCloseableRegistry.registerCloseable(checkpointStreamWithResultProvider);
+
+			/**
+			 * **********************************
+			 * 快照写入
+			 * **********************************
+			 */
 			writeSnapshotToOutputStream(checkpointStreamWithResultProvider, keyGroupRangeOffsets);
 
+
+
 			if (snapshotCloseableRegistry.unregisterCloseable(checkpointStreamWithResultProvider)) {
+				/**
+				 * 关闭 checkpoint output stream，获取并返回 KeyedStateHandle 流程
+				 */
 				return CheckpointStreamWithResultProvider.toKeyedStateHandleSnapshotResult(
 					checkpointStreamWithResultProvider.closeAndFinalizeCheckpointStreamResult(),
 					keyGroupRangeOffsets);
@@ -252,8 +285,18 @@ public class RocksFullSnapshotStrategy<K> extends RocksDBSnapshotStrategyBase<K>
 			final ReadOptions readOptions = new ReadOptions();
 			try {
 				readOptions.setSnapshot(snapshot);
+
+
+				/**
+				 * 向 checkpoint output stream 中写入 keyed state 元数据信息
+				 */
 				writeKVStateMetaData(kvStateIterators, readOptions, outputView);
+
+				/**
+				 * 向 checkpoint output stream 中写入 keyed state
+				 */
 				writeKVStateData(kvStateIterators, checkpointStreamWithResultProvider, keyGroupRangeOffsets);
+
 			} finally {
 
 				for (Tuple2<RocksIteratorWrapper, Integer> kvStateIterator : kvStateIterators) {
@@ -271,6 +314,10 @@ public class RocksFullSnapshotStrategy<K> extends RocksDBSnapshotStrategyBase<K>
 
 			int kvStateId = 0;
 
+			/**
+			 * 首先通过metaData获取 kvStateIterators，包含了每种状态的 RocksDB 读迭代器和 kvStateId
+			 * 为后续的状态写入 checkpoint output stream 做准备
+			 */
 			for (MetaData metaDataEntry : metaData) {
 				RocksIteratorWrapper rocksIteratorWrapper = getRocksIterator(
 					db, metaDataEntry.rocksDbKvStateInfo.columnFamilyHandle, metaDataEntry.stateSnapshotTransformer, readOptions);
@@ -278,6 +325,7 @@ public class RocksFullSnapshotStrategy<K> extends RocksDBSnapshotStrategyBase<K>
 				++kvStateId;
 			}
 
+			// 序列化 keyed state 的元数据信息
 			KeyedBackendSerializationProxy<K> serializationProxy =
 				new KeyedBackendSerializationProxy<>(
 					// TODO: this code assumes that writing a serializer is threadsafe, we should support to
@@ -304,6 +352,12 @@ public class RocksFullSnapshotStrategy<K> extends RocksDBSnapshotStrategyBase<K>
 				checkpointStreamWithResultProvider.getCheckpointOutputStream();
 
 			try {
+
+				/**
+				 *  RocksIterators 转化成 RocksStatesPerKeyGroupMergeIterator
+				 *  其实质是对 kvStateIterators 按照 （keyGroup, kvStateId) 由小到大排序，后面的写状态也是按照这个顺序
+				 *  实际写入 checkpoint output stream 时，按照 <keyGroupId, kvStateId, key(key+namespace)> 由小到大的顺序写入
+				 */
 				// Here we transfer ownership of RocksIterators to the RocksStatesPerKeyGroupMergeIterator
 				try (RocksStatesPerKeyGroupMergeIterator mergeIterator = new RocksStatesPerKeyGroupMergeIterator(
 					kvStateIterators, keyGroupPrefixBytes)) {
@@ -311,6 +365,7 @@ public class RocksFullSnapshotStrategy<K> extends RocksDBSnapshotStrategyBase<K>
 					//preamble: setup with first key-group as our lookahead
 					if (mergeIterator.isValid()) {
 						//begin first key-group by recording the offset
+						//同时记录当前 key-group 的 offset 到 keyGroupRangeOffsets
 						keyGroupRangeOffsets.setKeyGroupOffset(
 							mergeIterator.keyGroup(),
 							checkpointOutputStream.getPos());
@@ -338,6 +393,9 @@ public class RocksFullSnapshotStrategy<K> extends RocksDBSnapshotStrategyBase<K>
 							setMetaDataFollowsFlagInKey(previousKey);
 						}
 
+						/**
+						 *  写入key->value对
+						 */
 						writeKeyValuePair(previousKey, previousValue, kgOutView);
 
 						//write meta data if we have to
@@ -364,9 +422,11 @@ public class RocksFullSnapshotStrategy<K> extends RocksDBSnapshotStrategyBase<K>
 						//request next k/v pair
 						previousKey = mergeIterator.key();
 						previousValue = mergeIterator.value();
+						// next
 						mergeIterator.next();
 					}
 				}
+
 
 				//epilogue: write last key-group
 				if (previousKey != null) {

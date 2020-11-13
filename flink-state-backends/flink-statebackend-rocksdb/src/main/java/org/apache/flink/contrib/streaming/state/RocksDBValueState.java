@@ -102,6 +102,9 @@ class RocksDBValueState<K, N, V>
 
 		try {
 			backend.db.put(columnFamily, writeOptions,
+					/**
+					 * 怎么构建rocksdb的key？
+					 */
 				serializeCurrentKeyWithGroupAndNamespace(),
 				serializeValue(value));
 		} catch (Exception e) {
@@ -114,6 +117,7 @@ class RocksDBValueState<K, N, V>
 		StateDescriptor<S, SV> stateDesc,
 		Tuple2<ColumnFamilyHandle, RegisteredKeyValueStateBackendMetaInfo<N, SV>> registerResult,
 		RocksDBKeyedStateBackend<K> backend) {
+
 		return (IS) new RocksDBValueState<>(
 			registerResult.f0,
 			registerResult.f1.getNamespaceSerializer(),

@@ -258,8 +258,15 @@ public class DefaultOperatorStateBackend implements OperatorStateBackend {
 
 		long syncStartTime = System.currentTimeMillis();
 
+		/**
+		 *  做异步快照
+		 *
+		 *  策略模式：
+		 *  DefaultOperatorStateBackendSnapshotStrategy
+		 */
 		RunnableFuture<SnapshotResult<OperatorStateHandle>> snapshotRunner =
 			snapshotStrategy.snapshot(checkpointId, timestamp, streamFactory, checkpointOptions);
+
 
 		snapshotStrategy.logSyncCompleted(streamFactory, syncStartTime);
 		return snapshotRunner;

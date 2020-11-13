@@ -27,7 +27,9 @@ import javax.annotation.Nonnull;
  */
 public abstract class RegisteredStateMetaInfoBase {
 
-	/** The name of the state */
+	/** The name of the state
+	 *  state的名称
+	 * */
 	@Nonnull
 	protected final String name;
 

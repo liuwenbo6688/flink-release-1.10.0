@@ -34,6 +34,10 @@ import java.util.concurrent.RunnableFuture;
  */
 public class OperatorSnapshotFutures {
 
+	/**
+	 * snapshot的异步结果  RunnableFuture
+	 */
+
 	@Nonnull
 	private RunnableFuture<SnapshotResult<KeyedStateHandle>> keyedStateManagedFuture;
 

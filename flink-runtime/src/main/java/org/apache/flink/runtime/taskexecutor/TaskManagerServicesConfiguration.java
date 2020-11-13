@@ -66,6 +66,10 @@ public class TaskManagerServicesConfiguration {
 
 	private final long timerServiceShutdownTimeout;
 
+	/**
+	 * state.backend.local-recovery
+	 * 是否开启state本地恢复策略
+	 */
 	private final boolean localRecoveryEnabled;
 
 	private final RetryingRegistrationConfiguration retryingRegistrationConfiguration;

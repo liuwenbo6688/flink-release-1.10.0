@@ -1372,6 +1372,11 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 		private final CheckpointMetaData checkpointMetaData;
 		private final CheckpointOptions checkpointOptions;
 		private final CheckpointMetrics checkpointMetrics;
+
+
+		/**
+		 *  检查点输出流工厂，用于保留检查点的数据
+		 */
 		private final CheckpointStreamFactory storageLocation;
 
 		private final StreamOperator<?>[] allOperators;
@@ -1410,6 +1415,8 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 				 * snapshotState方法中是具体执行snapshot的逻辑
 				 */
 				for (StreamOperator<?> op : allOperators) {
+
+					// *** 对当前算子进行snapshotState操作 ***
 					checkpointStreamOperator(op);
 				}
 
@@ -1481,6 +1488,9 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
 		private void checkpointStreamOperator(StreamOperator<?> op) throws Exception {
 			if (null != op) {
 
+				/**
+				 * 对当前算子进行snapshotState操作
+				 */
 				OperatorSnapshotFutures snapshotInProgress = op.snapshotState(
 						checkpointMetaData.getCheckpointId(),
 						checkpointMetaData.getTimestamp(),

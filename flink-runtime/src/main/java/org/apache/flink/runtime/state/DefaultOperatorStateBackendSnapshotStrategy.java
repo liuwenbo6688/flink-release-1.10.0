@@ -36,12 +36,23 @@ import java.util.concurrent.RunnableFuture;
 
 /**
  * Snapshot strategy for this backend.
+ *
+ * OperatorState 的快照策略实现类
  */
 class DefaultOperatorStateBackendSnapshotStrategy extends AbstractSnapshotStrategy<OperatorStateHandle> {
 	private final ClassLoader userClassLoader;
 	private final boolean asynchronousSnapshots;
+
+	/**
+	 *
+	 */
 	private final Map<String, PartitionableListState<?>> registeredOperatorStates;
+
+	/**
+	 *
+	 */
 	private final Map<String, BackendWritableBroadcastState<?, ?>> registeredBroadcastStates;
+
 	private final CloseableRegistry closeStreamOnCancelRegistry;
 
 	protected DefaultOperatorStateBackendSnapshotStrategy(
@@ -70,6 +81,13 @@ class DefaultOperatorStateBackendSnapshotStrategy extends AbstractSnapshotStrate
 			return DoneFuture.of(SnapshotResult.empty());
 		}
 
+
+		/**
+		 *  下面的一整段代码就是做了一个HashMap的拷贝
+		 *
+		 *  registeredOperatorStates    ==> registeredOperatorStatesDeepCopies
+		 *  registeredBroadcastStates   ==> registeredBroadcastStatesDeepCopies
+		 */
 		final Map<String, PartitionableListState<?>> registeredOperatorStatesDeepCopies =
 			new HashMap<>(registeredOperatorStates.size());
 		final Map<String, BackendWritableBroadcastState<?, ?>> registeredBroadcastStatesDeepCopies =
@@ -104,31 +122,44 @@ class DefaultOperatorStateBackendSnapshotStrategy extends AbstractSnapshotStrate
 			Thread.currentThread().setContextClassLoader(snapshotClassLoader);
 		}
 
+
+
+
+
+
 		AsyncSnapshotCallable<SnapshotResult<OperatorStateHandle>> snapshotCallable =
 			new AsyncSnapshotCallable<SnapshotResult<OperatorStateHandle>>() {
 
+
+				/**
+				 *  异步进行快照的逻辑
+				 */
 				@Override
 				protected SnapshotResult<OperatorStateHandle> callInternal() throws Exception {
 
+					/**
+					 *  检查点的输出流
+					 *  基于内存 : MemoryCheckpointOutputStream
+					 *  基于fs  : FsCheckpointStateOutputStream
+					 */
 					CheckpointStreamFactory.CheckpointStateOutputStream localOut =
 						streamFactory.createCheckpointStateOutputStream(CheckpointedStateScope.EXCLUSIVE);
+
 					snapshotCloseableRegistry.registerCloseable(localOut);
+
 
 					// get the registered operator state infos ...
 					List<StateMetaInfoSnapshot> operatorMetaInfoSnapshots =
 						new ArrayList<>(registeredOperatorStatesDeepCopies.size());
-
-					for (Map.Entry<String, PartitionableListState<?>> entry :
-						registeredOperatorStatesDeepCopies.entrySet()) {
+					for (Map.Entry<String, PartitionableListState<?>> entry : registeredOperatorStatesDeepCopies.entrySet()) {
 						operatorMetaInfoSnapshots.add(entry.getValue().getStateMetaInfo().snapshot());
 					}
+
 
 					// ... get the registered broadcast operator state infos ...
 					List<StateMetaInfoSnapshot> broadcastMetaInfoSnapshots =
 						new ArrayList<>(registeredBroadcastStatesDeepCopies.size());
-
-					for (Map.Entry<String, BackendWritableBroadcastState<?, ?>> entry :
-						registeredBroadcastStatesDeepCopies.entrySet()) {
+					for (Map.Entry<String, BackendWritableBroadcastState<?, ?>> entry : registeredBroadcastStatesDeepCopies.entrySet()) {
 						broadcastMetaInfoSnapshots.add(entry.getValue().getStateMetaInfo().snapshot());
 					}
 
@@ -145,26 +176,39 @@ class DefaultOperatorStateBackendSnapshotStrategy extends AbstractSnapshotStrate
 					// we put BOTH normal and broadcast state metadata here
 					int initialMapCapacity =
 						registeredOperatorStatesDeepCopies.size() + registeredBroadcastStatesDeepCopies.size();
-					final Map<String, OperatorStateHandle.StateMetaInfo> writtenStatesMetaData =
-						new HashMap<>(initialMapCapacity);
+					/**
+					 * 返回给job master端的StateMetaInfo信息
+					 */
+					final Map<String, OperatorStateHandle.StateMetaInfo> writtenStatesMetaData
+							= new HashMap<>(initialMapCapacity);
 
-					for (Map.Entry<String, PartitionableListState<?>> entry :
-						registeredOperatorStatesDeepCopies.entrySet()) {
+
+					for (Map.Entry<String, PartitionableListState<?>> entry : registeredOperatorStatesDeepCopies.entrySet()) {
 
 						PartitionableListState<?> value = entry.getValue();
+
+						/**
+						 *  调用输出流，把状态数据输出到目的存储
+						 */
 						long[] partitionOffsets = value.write(localOut);
+
 						OperatorStateHandle.Mode mode = value.getStateMetaInfo().getAssignmentMode();
 						writtenStatesMetaData.put(
 							entry.getKey(),
 							new OperatorStateHandle.StateMetaInfo(partitionOffsets, mode));
 					}
 
+
 					// ... and the broadcast states themselves ...
-					for (Map.Entry<String, BackendWritableBroadcastState<?, ?>> entry :
-						registeredBroadcastStatesDeepCopies.entrySet()) {
+					for (Map.Entry<String, BackendWritableBroadcastState<?, ?>> entry : registeredBroadcastStatesDeepCopies.entrySet()) {
 
 						BackendWritableBroadcastState<?, ?> value = entry.getValue();
+
+						/**
+						 *  调用输出流，把状态数据输出到目的存储
+						 */
 						long[] partitionOffsets = {value.write(localOut)};
+
 						OperatorStateHandle.Mode mode = value.getStateMetaInfo().getAssignmentMode();
 						writtenStatesMetaData.put(
 							entry.getKey(),

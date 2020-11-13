@@ -116,6 +116,8 @@ public class CopyOnWriteStateMapSnapshot<K, N, S>
 		TypeSerializer<S> stateSerializer,
 		@Nonnull DataOutputView dov,
 		@Nullable StateSnapshotTransformer<S> stateSnapshotTransformer) throws IOException {
+
+
 		SnapshotIterator<K, N, S> snapshotIterator = stateSnapshotTransformer == null ?
 			new NonTransformSnapshotIterator<>(numberOfEntriesInSnapshotData, snapshotData) :
 			new TransformedSnapshotIterator<>(numberOfEntriesInSnapshotData, snapshotData, stateSnapshotTransformer);
@@ -128,6 +130,7 @@ public class CopyOnWriteStateMapSnapshot<K, N, S>
 			keySerializer.serialize(stateEntry.getKey(), dov);
 			stateSerializer.serialize(stateEntry.getState(), dov);
 		}
+
 	}
 
 	/**

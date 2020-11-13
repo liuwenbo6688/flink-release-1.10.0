@@ -115,12 +115,19 @@ public final class StreamingFunctionUtils {
 			Function userFunction) throws Exception {
 
 		if (userFunction instanceof CheckpointedFunction) {
+			/**
+			 *
+			 */
 			((CheckpointedFunction) userFunction).snapshotState(context);
 
 			return true;
 		}
 
 		if (userFunction instanceof ListCheckpointed) {
+
+			/**
+			 *
+			 */
 			@SuppressWarnings("unchecked")
 			List<Serializable> partitionableState = ((ListCheckpointed<Serializable>) userFunction).
 					snapshotState(context.getCheckpointId(), context.getCheckpointTimestamp());

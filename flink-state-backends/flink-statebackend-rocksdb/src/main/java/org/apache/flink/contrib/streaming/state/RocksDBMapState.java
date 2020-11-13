@@ -60,6 +60,8 @@ import static org.apache.flink.util.Preconditions.checkArgument;
  * @param <N> The type of the namespace.
  * @param <UK> The type of the keys in the map state.
  * @param <UV> The type of the values in the map state.
+ *
+ * MapState 的RocksDB存储实现
  */
 class RocksDBMapState<K, N, UK, UV>
 	extends AbstractRocksDBState<K, N, Map<UK, UV>>
@@ -68,6 +70,9 @@ class RocksDBMapState<K, N, UK, UV>
 	private static final Logger LOG = LoggerFactory.getLogger(RocksDBMapState.class);
 
 	/** Serializer for the keys and values. */
+	/**
+	 * 序列化key 和 value的组件
+	 */
 	private final TypeSerializer<UK> userKeySerializer;
 	private final TypeSerializer<UV> userValueSerializer;
 
