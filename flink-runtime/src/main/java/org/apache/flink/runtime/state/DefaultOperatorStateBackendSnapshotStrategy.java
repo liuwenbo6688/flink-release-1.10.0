@@ -64,8 +64,18 @@ class DefaultOperatorStateBackendSnapshotStrategy extends AbstractSnapshotStrate
 		super("DefaultOperatorStateBackend snapshot");
 		this.userClassLoader = userClassLoader;
 		this.asynchronousSnapshots = asynchronousSnapshots;
+
+		/**
+         *
+         */
 		this.registeredOperatorStates = registeredOperatorStates;
+
+        /**
+         *
+         */
 		this.registeredBroadcastStates = registeredBroadcastStates;
+
+
 		this.closeStreamOnCancelRegistry = closeStreamOnCancelRegistry;
 	}
 

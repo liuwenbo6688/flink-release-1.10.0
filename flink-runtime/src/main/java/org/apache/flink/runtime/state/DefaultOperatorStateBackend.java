@@ -58,6 +58,9 @@ public class DefaultOperatorStateBackend implements OperatorStateBackend {
 
 	/**
 	 * Map for all registered operator states. Maps state name -> state
+	 * 所有注册的 operate state
+	 *
+	 * name -> state
 	 */
 	private final Map<String, PartitionableListState<?>> registeredOperatorStates;
 

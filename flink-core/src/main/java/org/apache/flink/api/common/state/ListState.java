@@ -39,6 +39,7 @@ import java.util.List;
  * of changed operator parallelism.
  *
  * @param <T> Type of values that this list state keeps.
+ *            泛型，ListState 中值的类型
  */
 @PublicEvolving
 public interface ListState<T> extends MergingState<T, Iterable<T>> {
