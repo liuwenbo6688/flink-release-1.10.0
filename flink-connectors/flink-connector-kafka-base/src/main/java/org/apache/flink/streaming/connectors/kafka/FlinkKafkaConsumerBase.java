@@ -1031,7 +1031,7 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 			return;
 		}
 
-		if (offsetCommitMode == OffsetCommitMode.ON_CHECKPOINTS) {
+		if (offsetCommitMode == OffsetCommitMode.ON_CHECKPOINTS) { // 当checkpoint完成的时候提交offset
 			// only one commit operation must be in progress
 			if (LOG.isDebugEnabled()) {
 				LOG.debug("Consumer subtask {} committing offsets to Kafka/ZooKeeper for checkpoint {}.",
@@ -1039,6 +1039,10 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 			}
 
 			try {
+				/**
+				 *  [ checkpointId  ->  Map<KafkaTopicPartition, Long> ]
+				 *  获取checkpoint对应的kafka每个分区的偏移量，然后提交给kafka
+				 */
 				final int posInMap = pendingOffsetsToCommit.indexOf(checkpointId);
 				if (posInMap == -1) {
 					LOG.warn("Consumer subtask {} received confirmation for unknown checkpoint id {}",
