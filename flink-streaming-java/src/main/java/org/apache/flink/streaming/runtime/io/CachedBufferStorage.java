@@ -60,6 +60,8 @@ public class CachedBufferStorage implements BufferStorage {
 	 *
 	 * <p>TODO: probably this field could be removed in favour of using
 	 * {@code rolledOverBuffersQueue.peek()}.
+	 *
+	 *  存放没有被阻塞的数据，需要优先于数据流的数据被消费掉
 	 */
 	private BufferOrEventSequence rolledOverBuffers;
 
@@ -72,7 +74,9 @@ public class CachedBufferStorage implements BufferStorage {
 	/** The number of bytes cached since the last roll over. */
 	private long bytesBlocked;
 
-	/** The current memory queue for caching the buffers or events. */
+	/** The current memory queue for caching the buffers or events.
+	 *  当前用来缓存buffers或者events的内存队列
+	 * */
 	private ArrayDeque<BufferOrEvent> cachedBuffers;
 
 	/**
@@ -102,6 +106,9 @@ public class CachedBufferStorage implements BufferStorage {
 	public void add(BufferOrEvent boe) {
 		bytesBlocked += pageSize;
 
+		/**
+		 * 加入内存缓冲队列
+		 */
 		cachedBuffers.add(boe);
 	}
 
@@ -137,9 +144,17 @@ public class CachedBufferStorage implements BufferStorage {
 	public void rollOver() {
 		if (rolledOverBuffers == null) {
 			// common case: no more buffered data
+			/**
+			 * 比较常见的情况
+			 * 把缓存的被阻塞的数据(cachedBuffers) ==>  不被阻塞的队列 rolledOverBuffers
+			 */
 			rolledOverBuffers = rollOverCachedBuffers();
 		}
 		else {
+			/**
+			 * 不正常的情况
+			 * 先不用看了，会让理解变得非常困难
+			 */
 			// uncommon case: buffered data pending
 			// push back the pending data, if we have any
 			LOG.debug("{}: Checkpoint skipped via buffered data:" +
@@ -185,6 +200,9 @@ public class CachedBufferStorage implements BufferStorage {
 
 	@Override
 	public Optional<BufferOrEvent> pollNext() {
+		/**
+		 *  rolledOverBuffers 中读取数据
+		 */
 		if (rolledOverBuffers == null) {
 			return Optional.empty();
 		}
@@ -199,7 +217,7 @@ public class CachedBufferStorage implements BufferStorage {
 		LOG.debug("{}: Finished feeding back buffered data.", taskName);
 
 		rolledOverBuffers.cleanup();
-		rolledOverBuffers = rolledOverBuffersQueue.pollFirst();
+		rolledOverBuffers = rolledOverBuffersQueue.pollFirst();  // 从队列头部取出从队列中移除，如果队列是空，就返回null
 		if (rolledOverBuffers != null) {
 			rolledBytes -= rolledOverBuffers.size();
 		}

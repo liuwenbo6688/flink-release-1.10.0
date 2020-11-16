@@ -53,6 +53,9 @@ public class BufferOrEvent {
 	 */
 	private boolean moreAvailable;
 
+	/**
+	 * 数据来自哪个 channel
+	 */
 	private int channelIndex;
 
 	private final int size;

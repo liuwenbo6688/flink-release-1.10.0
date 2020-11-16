@@ -155,6 +155,12 @@ public class InputProcessorUtil {
 			Configuration taskManagerConfig,
 			String taskName) {
 		switch (checkpointMode) {
+
+			/**
+			 *  关于 BufferStorage
+			 *  EXACTLY_ONCE  :  CachedBufferStorage
+			 *  AT_LEAST_ONCE : EmptyBufferStorage
+			 */
 			case EXACTLY_ONCE: {
 				long maxAlign = taskManagerConfig.getLong(TaskManagerOptions.TASK_CHECKPOINT_ALIGNMENT_BYTES_LIMIT);
 				if (!(maxAlign == -1 || maxAlign > 0)) {

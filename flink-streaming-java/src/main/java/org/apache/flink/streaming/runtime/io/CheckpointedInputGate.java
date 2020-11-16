@@ -49,6 +49,11 @@ public class CheckpointedInputGate implements PullingAsyncDataInput<BufferOrEven
 
 	private static final Logger LOG = LoggerFactory.getLogger(CheckpointedInputGate.class);
 
+	/**
+	 * 对齐方式
+	 * CheckpointBarrierAligner  对齐操作可以保证数据的精准一次投送（exactly once）
+	 * CheckpointBarrierTracker
+	 */
 	private final CheckpointBarrierHandler barrierHandler;
 
 	/** The gate that the buffer draws its input from. */
@@ -59,6 +64,10 @@ public class CheckpointedInputGate implements PullingAsyncDataInput<BufferOrEven
 	/**
 	 *  如果需要读取数据的channel被barrierHandler阻塞，这个channel到来的数据会暂存在 bufferStorage 中
 	 *  直到该通道取消阻塞。从该InputGate读取的时候会优先读取 bufferStorage 中的数据
+	 *
+	 * 	EXACTLY_ONCE  :  CachedBufferStorage
+	 * 	AT_LEAST_ONCE :  EmptyBufferStorage
+	 *
 	 */
 	private final BufferStorage bufferStorage;
 
@@ -123,36 +132,56 @@ public class CheckpointedInputGate implements PullingAsyncDataInput<BufferOrEven
 		return AVAILABLE;
 	}
 
+
+	/**
+	 *  最最最重要的一个方法，InputGate拉取数据的逻辑都在这里
+	 *  包括处理 CheckpointBarrier（也就是EXACTLY_ONCE 和 AT_LEAST_ONCE）
+	 */
 	@Override
 	public Optional<BufferOrEvent> pollNext() throws Exception {
 		while (true) {
-			// process buffered BufferOrEvents before grabbing new ones
+
+
+			/**
+			 * 1.
+			 */
 			Optional<BufferOrEvent> next;
 			if (bufferStorage.isEmpty()) {
 				/**
+				 * 1-1.
 				 * 只有当bufferStorage为空的时候才从inputGate读取数据
 				 */
 				next = inputGate.pollNext();
 			}
 			else {
 				// TODO: FLINK-12536 for non credit-based flow control, getNext method is blocking
+				/**
+				 * 1-2.
+				 * 从bufferStorage中读取数据，之前被阻塞的数据，优先数据流的数据被读取
+				 */
 				next = bufferStorage.pollNext();
 				if (!next.isPresent()) {
 					return pollNext();
 				}
 			}
 
+
 			if (!next.isPresent()) {
 				return handleEmptyBuffer();
 			}
 
+
+			/**
+			 * 2
+			 */
 			BufferOrEvent bufferOrEvent = next.get();
 
 			if (barrierHandler.isBlocked(offsetChannelIndex(bufferOrEvent.getChannelIndex()))) {
 				// if the channel is blocked, we just store the BufferOrEvent
 				/**
-				 *  如果channel被block，则数据不会发往下游
-				 *  取而代之的是进入到bufferStorage中缓存起来
+				 *
+				 *  2-1. 如果channel被block，则数据不会发往下游
+				 *    取而代之的是进入到bufferStorage中缓存起来
 				 */
 				bufferStorage.add(bufferOrEvent);
 
@@ -162,16 +191,21 @@ public class CheckpointedInputGate implements PullingAsyncDataInput<BufferOrEven
 				}
 			}
 			else if (bufferOrEvent.isBuffer()) {
+				/**
+				 * 2-2.
+				 */
 				return next;
 			}
 			else if (bufferOrEvent.getEvent().getClass() == CheckpointBarrier.class) {
 				/**
+				 *  2-3.
 				 *  处理 barrier 的逻辑
 				 */
 				CheckpointBarrier checkpointBarrier = (CheckpointBarrier) bufferOrEvent.getEvent();
 				if (!endOfInputGate) {
 					// process barriers only if there is a chance of the checkpoint completing
 					// 调用barrierHandler的 processBarrier 方法，对齐策略也在这里面
+					// 返回true如果阻塞的数据被解除，变为可以被读取的数据
 					if (barrierHandler.processBarrier(
 										checkpointBarrier,
 										offsetChannelIndex(bufferOrEvent.getChannelIndex()),
@@ -182,6 +216,7 @@ public class CheckpointedInputGate implements PullingAsyncDataInput<BufferOrEven
 					}
 				}
 			}
+
 			else if (bufferOrEvent.getEvent().getClass() == CancelCheckpointMarker.class) {
 				if (barrierHandler.processCancellationBarrier((CancelCheckpointMarker) bufferOrEvent.getEvent())) {
 					bufferStorage.rollOver();
