@@ -1041,7 +1041,7 @@ public abstract class FlinkKafkaConsumerBase<T> extends RichParallelSourceFuncti
 			try {
 				/**
 				 *  [ checkpointId  ->  Map<KafkaTopicPartition, Long> ]
-				 *  获取checkpoint对应的kafka每个分区的偏移量，然后提交给kafka
+				 *  获取checkpoint对应的kafka每个分区的偏移量，然后提交给kafka broker
 				 */
 				final int posInMap = pendingOffsetsToCommit.indexOf(checkpointId);
 				if (posInMap == -1) {
