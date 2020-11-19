@@ -309,7 +309,12 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
 		// note: we also accept resource assignment when being in state CREATED for testing purposes
 		if (state == SCHEDULED || state == CREATED) {
 			if (assignedResource == null) {
+
+				/**
+				 *
+				 */
 				assignedResource = logicalSlot;
+
 				if (logicalSlot.tryAssignPayload(this)) {
 					// check for concurrent modification (e.g. cancelling call)
 					if ((state == SCHEDULED || state == CREATED) && !taskManagerLocationFuture.isDone()) {

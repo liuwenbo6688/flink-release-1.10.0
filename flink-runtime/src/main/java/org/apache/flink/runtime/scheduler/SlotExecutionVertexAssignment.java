@@ -34,7 +34,7 @@ public class SlotExecutionVertexAssignment {
 	private final ExecutionVertexID executionVertexId;
 
 	/**
-	 *
+	 * slot申请异步结果对象
 	 */
 	private final CompletableFuture<LogicalSlot> logicalSlotFuture;
 

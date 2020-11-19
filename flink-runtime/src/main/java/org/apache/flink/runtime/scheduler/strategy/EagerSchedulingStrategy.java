@@ -31,6 +31,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
  * {@link SchedulingStrategy} instance for streaming job which will schedule all tasks at the same time.
+ *
+ *  主要用于流式作业，所有顶点（ExecutionVertex）同时开始调度
  */
 public class EagerSchedulingStrategy implements SchedulingStrategy {
 
@@ -51,7 +53,10 @@ public class EagerSchedulingStrategy implements SchedulingStrategy {
 	public void startScheduling() {
 
 		allocateSlotsAndDeploy(
-			// 获取拓扑结构中所有的 ExecutionVertexID
+			/**
+			 * 一次获取所有的顶点进行申请slot和部署，这就是 EagerSchedulingStrategy的意思
+			 * 获取拓扑结构中所有的 ExecutionVertexID
+			 */
 			SchedulingStrategyUtils.getAllVertexIdsFromTopology(schedulingTopology)
 		);
 	}
@@ -84,6 +89,7 @@ public class EagerSchedulingStrategy implements SchedulingStrategy {
 
 		/**
 		 * 2. 然后调用DefaultScheduler的allocateSlotsAndDeploy开始部署
+		 * *********************** 一次要部署全部的顶点（ExecutionVertex） *********************************
 		 */
 		schedulerOperations.allocateSlotsAndDeploy(executionVertexDeploymentOptions);
 	}

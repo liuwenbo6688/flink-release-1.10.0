@@ -42,14 +42,16 @@ public final class ExecutionVertexSchedulingRequirementsMapper {
 		final AllocationID latestPriorAllocation = executionVertex.getLatestPriorAllocation();
 		final SlotSharingGroup slotSharingGroup = executionVertex.getJobVertex().getSlotSharingGroup();
 
-		return new ExecutionVertexSchedulingRequirements.Builder()
-			.withExecutionVertexId(executionVertexId)
-			.withPreviousAllocationId(latestPriorAllocation)
-			.withTaskResourceProfile(executionVertex.getResourceProfile())
-			.withPhysicalSlotResourceProfile(getPhysicalSlotResourceProfile(executionVertex))
-			.withSlotSharingGroupId(slotSharingGroup == null ? null : slotSharingGroup.getSlotSharingGroupId())
-			.withCoLocationConstraint(executionVertex.getLocationConstraint())
-			.withPreferredLocations(getPreferredLocationBasedOnState(executionVertex)).build();
+		return new ExecutionVertexSchedulingRequirements
+				.Builder()
+				.withExecutionVertexId(executionVertexId)
+				.withPreviousAllocationId(latestPriorAllocation)
+				.withTaskResourceProfile(executionVertex.getResourceProfile())
+				.withPhysicalSlotResourceProfile(getPhysicalSlotResourceProfile(executionVertex))
+				.withSlotSharingGroupId(slotSharingGroup == null ? null : slotSharingGroup.getSlotSharingGroupId())
+				.withCoLocationConstraint(executionVertex.getLocationConstraint())
+				.withPreferredLocations(getPreferredLocationBasedOnState(executionVertex))
+				.build();
 	}
 
 	/**

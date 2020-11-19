@@ -62,6 +62,7 @@ public class DefaultExecutionSlotAllocator implements ExecutionSlotAllocator {
 
 	/**
 	 * Store the uncompleted slot assignments.
+	 * 缓存没有完成的slot分配请求
 	 */
 	private final Map<ExecutionVertexID, SlotExecutionVertexAssignment> pendingSlotAssignments;
 
@@ -84,6 +85,11 @@ public class DefaultExecutionSlotAllocator implements ExecutionSlotAllocator {
 
 		validateSchedulingRequirements(executionVertexSchedulingRequirements);
 
+
+		/**
+		 * 封装了ExecutionVertexID 和 异步请求的CompletableFuture类
+		 * 作为该方法的最终返回结果
+		 */
 		List<SlotExecutionVertexAssignment> slotExecutionVertexAssignments =
 				new ArrayList<>(executionVertexSchedulingRequirements.size());
 
@@ -95,43 +101,48 @@ public class DefaultExecutionSlotAllocator implements ExecutionSlotAllocator {
 			 * 遍历每一个 ExecutionVertex 部署需要的资源情况
 			 */
 			final ExecutionVertexID executionVertexId = schedulingRequirements.getExecutionVertexId();
-			final SlotRequestId slotRequestId = new SlotRequestId(); // slot请求的id
-			final SlotSharingGroupId slotSharingGroupId = schedulingRequirements.getSlotSharingGroupId(); // slot共享组id
+			// slot请求的id
+			final SlotRequestId slotRequestId = new SlotRequestId();
+			// slot共享组id
+			final SlotSharingGroupId slotSharingGroupId = schedulingRequirements.getSlotSharingGroupId();
 
 			LOG.debug("Allocate slot with id {} for execution {}", slotRequestId, executionVertexId);
 
 			/**
 			 *  针对每一个slot request，
 			 */
-			CompletableFuture<LogicalSlot> slotFuture = calculatePreferredLocations(
-					executionVertexId,
-					schedulingRequirements.getPreferredLocations(),
-					inputsLocationsRetriever)
-				.thenCompose(
-							(Collection<TaskManagerLocation> preferredLocations) ->
-								/**
-								 *  流式计算实现为:
-								 *  NormalSlotProviderStrategy
-								 */
-								slotProviderStrategy.allocateSlot(
+			CompletableFuture<LogicalSlot> slotFuture =
+				/**
+				 * 1. 获取当前任务分配槽位所在节点的"偏好位置集合"，也就是分配时，优先考虑分配在这些节点上
+				 * */
+				calculatePreferredLocations(
+						executionVertexId,
+						schedulingRequirements.getPreferredLocations(),
+						inputsLocationsRetriever
+				).thenCompose(
+						(Collection<TaskManagerLocation> preferredLocations) ->
+							/**
+							 *  2. 进行slot分配
+							 *  流式计算实现为: NormalSlotProviderStrategy
+							 */
+							slotProviderStrategy.allocateSlot(
 									slotRequestId, // 第一个参数
-
 									new ScheduledUnit(
 										executionVertexId.getJobVertexId(),
 										slotSharingGroupId,
 										schedulingRequirements.getCoLocationConstraint()), // 第二个参数
-
 									SlotProfile.priorAllocation(
 										schedulingRequirements.getTaskResourceProfile(),
 										schedulingRequirements.getPhysicalSlotResourceProfile(),
 										preferredLocations,
 										Collections.singletonList(schedulingRequirements.getPreviousAllocationId()),
 										allPreviousAllocationIds) // 第三个参数
-								)
+							)
 				);
 
 			SlotExecutionVertexAssignment slotExecutionVertexAssignment =
 					new SlotExecutionVertexAssignment(executionVertexId, slotFuture);
+
 			// add to map first to avoid the future completed before added.
 			pendingSlotAssignments.put(executionVertexId, slotExecutionVertexAssignment);
 
@@ -174,6 +185,7 @@ public class DefaultExecutionSlotAllocator implements ExecutionSlotAllocator {
 	}
 
 	/**
+	 * 获取当前任务分配槽位所在节点的"偏好位置集合"，也就是分配时，优先考虑分配在这些节点上
 	 * Calculates the preferred locations for an execution.
 	 * It will first try to use preferred locations based on state,
 	 * if null, will use the preferred locations based on inputs.

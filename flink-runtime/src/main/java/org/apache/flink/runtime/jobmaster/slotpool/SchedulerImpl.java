@@ -108,6 +108,10 @@ public class SchedulerImpl implements Scheduler {
 
 	//---------------------------
 
+
+	/**
+	 * 为task准备slot
+	 */
 	@Override
 	public CompletableFuture<LogicalSlot> allocateSlot(
 			SlotRequestId slotRequestId,
@@ -116,7 +120,7 @@ public class SchedulerImpl implements Scheduler {
 			Time allocationTimeout) {
 
 		/**
-		 *
+		 * 转交给内部的私有方法，继续跟进去
 		 */
 		return allocateSlotInternal(
 					slotRequestId,

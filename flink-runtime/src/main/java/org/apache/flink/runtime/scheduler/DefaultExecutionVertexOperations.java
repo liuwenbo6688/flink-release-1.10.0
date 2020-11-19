@@ -30,7 +30,7 @@ class DefaultExecutionVertexOperations implements ExecutionVertexOperations {
 	public void deploy(final ExecutionVertex executionVertex) throws JobException {
 
 		/**
-		 *
+		 * 最终走的是 ExecutionVertex的 deploy方法
 		 */
 		executionVertex.deploy();
 	}

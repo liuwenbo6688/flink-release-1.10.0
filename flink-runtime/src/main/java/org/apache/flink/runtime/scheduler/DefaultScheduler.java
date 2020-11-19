@@ -300,18 +300,32 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
 
 	@Override
 	public void allocateSlotsAndDeploy(final List<ExecutionVertexDeploymentOption> executionVertexDeploymentOptions) {
+
+		/**
+		 * 校验待部署的这一批 ExecutionVertex
+		 */
 		validateDeploymentOptions(executionVertexDeploymentOptions);
 
+		/**
+		 * 转换为 <ExecutionVertexID, ExecutionVertexDeploymentOption> 的Map对象
+		 */
 		final Map<ExecutionVertexID, ExecutionVertexDeploymentOption> deploymentOptionsByVertex =
 			groupDeploymentOptionsByVertexId(executionVertexDeploymentOptions);
 
-		final List<ExecutionVertexID> verticesToDeploy = executionVertexDeploymentOptions.stream()
-			.map(ExecutionVertexDeploymentOption::getExecutionVertexId)
-			.collect(Collectors.toList());
+		/**
+		 * 拿到所有的 ExecutionVertexID 列表
+		 */
+		final List<ExecutionVertexID> verticesToDeploy = executionVertexDeploymentOptions
+				.stream()
+				.map(ExecutionVertexDeploymentOption::getExecutionVertexId)
+				.collect(Collectors.toList());
 
 		final Map<ExecutionVertexID, ExecutionVertexVersion> requiredVersionByVertex =
 			executionVertexVersioner.recordVertexModifications(verticesToDeploy);
 
+		/**
+		 * 将 Execution 的状态转为 "SCHEDULED"
+		 */
 		transitionToScheduled(verticesToDeploy);
 
 
@@ -354,9 +368,15 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
 
 	private static Map<ExecutionVertexID, ExecutionVertexDeploymentOption> groupDeploymentOptionsByVertexId(
 			final Collection<ExecutionVertexDeploymentOption> executionVertexDeploymentOptions) {
-		return executionVertexDeploymentOptions.stream().collect(Collectors.toMap(
-				ExecutionVertexDeploymentOption::getExecutionVertexId,
-				Function.identity()));
+
+		/**
+		 * 转换为Map结构
+		 */
+		return executionVertexDeploymentOptions
+				.stream()
+				.collect(
+						Collectors.toMap(ExecutionVertexDeploymentOption::getExecutionVertexId, Function.identity())
+				);
 	}
 
 
@@ -377,6 +397,7 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
 				.stream()
 				.map(ExecutionVertexDeploymentOption::getExecutionVertexId)
 				.map(this::getExecutionVertex)
+				//
 				.map(ExecutionVertexSchedulingRequirementsMapper::from)
 				.collect(Collectors.toList())
 		);
@@ -421,13 +442,15 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
 	private void waitForAllSlotsAndDeploy(final List<DeploymentHandle> deploymentHandles) {
 		FutureUtils.assertNoException(
 
+			/* 等待申请完成slot，然后分配给Execution */
 			assignAllResources(deploymentHandles)
-				.handle(
-					/**
-					 *
-					 */
-					deployAll(deploymentHandles)
-				)
+			/* */
+			.handle(
+				/**
+				 * slot分配完成之后，进行部署，就是在slot上启动task
+				 */
+				deployAll(deploymentHandles)
+			)
 		);
 	}
 
@@ -444,8 +467,11 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
 					 */
 					assignResourceOrHandleError(deploymentHandle)
 				);
+
 			slotAssignedFutures.add(slotAssigned);
 		}
+
+		//等待。。。所有槽位申请都完成
 		return FutureUtils.waitForAll(slotAssignedFutures);
 	}
 
@@ -454,6 +480,9 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
 			propagateIfNonNull(throwable);
 
 			for (final DeploymentHandle deploymentHandle : deploymentHandles) {
+				/**
+				 * 循环遍历部署
+				 */
 				final SlotExecutionVertexAssignment slotExecutionVertexAssignment = deploymentHandle.getSlotExecutionVertexAssignment();
 				final CompletableFuture<LogicalSlot> slotAssigned = slotExecutionVertexAssignment.getLogicalSlotFuture();
 				checkState(slotAssigned.isDone());
@@ -489,6 +518,10 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
 			}
 
 			if (throwable == null) {
+				/**
+				 * 没有异常发生，代表申请到了slot
+				 * logicalSlot 就是申请到的slot
+				 */
 				final ExecutionVertex executionVertex = getExecutionVertex(executionVertexId);
 				final boolean sendScheduleOrUpdateConsumerMessage = deploymentHandle.getDeploymentOption().sendScheduleOrUpdateConsumerMessage();
 				executionVertex
@@ -496,7 +529,7 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
 					.registerProducedPartitions(logicalSlot.getTaskManagerLocation(), sendScheduleOrUpdateConsumerMessage);
 
 				/**
-				 *
+				 * slot分配给当前Execution
 				 */
 				executionVertex.tryAssignResource(logicalSlot);
 
@@ -540,9 +573,11 @@ public class DefaultScheduler extends SchedulerBase implements SchedulerOperatio
 
 			if (throwable == null) {
 				/**
-				 *
+				 *  ************
+				 *  ************
 				 */
 				deployTaskSafe(executionVertexId);
+
 			} else {
 				handleTaskDeploymentFailure(executionVertexId, throwable);
 			}

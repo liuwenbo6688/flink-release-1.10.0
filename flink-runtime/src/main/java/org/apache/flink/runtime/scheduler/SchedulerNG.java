@@ -55,6 +55,7 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * Interface for scheduling Flink jobs.
+ * 调度 Flink jobs
  *
  * <p>Instances are created via {@link SchedulerNGFactory}, and receive a {@link JobGraph} when
  * instantiated.

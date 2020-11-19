@@ -32,6 +32,9 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * A slot sharing units defines which different task (from different job vertices) can be
  * deployed together within a slot. This is a soft permission, in contrast to the hard constraint
  * defined by a co-location hint.
+ *
+ *  表示不同的task可以共享slot，但是这是soft的约束，即也可以不在一个slot
+ *  默认情况下，整个StreamGraph都会用一个默认的“default” SlotSharingGroup，即所有的JobVertex的task都可以共用一个slot
  */
 public class SlotSharingGroup implements java.io.Serializable {
 

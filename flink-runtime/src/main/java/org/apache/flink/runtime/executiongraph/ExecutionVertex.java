@@ -714,7 +714,7 @@ public class ExecutionVertex implements AccessExecutionVertex, Archiveable<Archi
 	}
 
 	public void tryAssignResource(LogicalSlot slot) {
-		if (!currentExecution.tryAssignResource(slot)) {
+		if (!currentExecution.tryAssignResource(slot)/*slot分配给当前Execution*/) {
 			throw new IllegalStateException("Could not assign resource " + slot + " to current execution " +
 				currentExecution + '.');
 		}
