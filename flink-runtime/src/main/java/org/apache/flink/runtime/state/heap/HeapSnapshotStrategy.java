@@ -216,10 +216,9 @@ class HeapSnapshotStrategy<K>
 
 							StateSnapshot.StateKeyGroupWriter partitionedSnapshot = stateSnapshot.getValue().getKeyGroupWriter();
 							try (
-
 								// 根据配置(execution.checkpointing.snapshot-compression,默认 false，不压缩) 获取压缩/未压缩流
-								OutputStream kgCompressionOut =
-									keyGroupCompressionDecorator.decorateWithCompression(localStream)) {
+								OutputStream kgCompressionOut = keyGroupCompressionDecorator.decorateWithCompression(localStream)  ) {
+
 								DataOutputViewStreamWrapper kgCompressionView =
 									new DataOutputViewStreamWrapper(kgCompressionOut);
 
