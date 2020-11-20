@@ -151,6 +151,9 @@ public class SchedulerImpl implements Scheduler {
 
 		componentMainThreadExecutor.assertRunningInMainThread();
 
+		/**
+		 * 异步计算的结果 CompletableFuture
+		 */
 		final CompletableFuture<LogicalSlot> allocationResultFuture = new CompletableFuture<>();
 
 		/**
@@ -179,15 +182,20 @@ public class SchedulerImpl implements Scheduler {
 		CompletableFuture<LogicalSlot> allocationFuture = scheduledUnit.getSlotSharingGroupId() == null ?
 			/**
 			 *  不能共享slot的情况
+			 *  1个逻辑slot 映射 1个物理slot
 			 */
 			allocateSingleSlot(slotRequestId, slotProfile, allocationTimeout) :
 			/**
 			 *  多个task共享slot的情况
 			 *  平时我们使用的时候，多数是设置可以共享slot的，提升资源利用率
+			 *  多个逻辑slot 映射 1个物理slot
 			 */
 			allocateSharedSlot(slotRequestId, scheduledUnit, slotProfile, allocationTimeout);
 
 
+		/**
+		 * 异步返回结果， complete异步调用
+		 */
 		allocationFuture.whenComplete((LogicalSlot slot, Throwable failure) -> {
 			if (failure != null) {
 				cancelSlotRequest(
@@ -322,6 +330,9 @@ public class SchedulerImpl implements Scheduler {
 
 	// ------------------------------- slot sharing code
 
+	/**
+	 * slot共享模式下，申请slot的核心方法
+	 */
 	private CompletableFuture<LogicalSlot> allocateSharedSlot(
 		SlotRequestId slotRequestId,
 		ScheduledUnit scheduledUnit,
@@ -362,7 +373,10 @@ public class SchedulerImpl implements Scheduler {
 					allocationTimeout);
 			} else {
 				/**
+				 * ********************************************************
 				 *  非 CoLocationGroup
+				 *  看这个逻辑就行了
+				 * ********************************************************
 				 */
 				multiTaskSlotLocality = allocateMultiTaskSlot(
 					scheduledUnit.getJobVertexId(),
@@ -377,11 +391,14 @@ public class SchedulerImpl implements Scheduler {
 		// sanity check
 		Preconditions.checkState(!multiTaskSlotLocality.getMultiTaskSlot().contains(scheduledUnit.getJobVertexId()));
 
-		final SlotSharingManager.SingleTaskSlot leaf = multiTaskSlotLocality.getMultiTaskSlot().allocateSingleTaskSlot(
-			slotRequestId,
-			slotProfile.getTaskResourceProfile(),
-			scheduledUnit.getJobVertexId(),
-			multiTaskSlotLocality.getLocality());
+		final SlotSharingManager.SingleTaskSlot leaf = multiTaskSlotLocality
+				.getMultiTaskSlot()
+				.allocateSingleTaskSlot(slotRequestId,
+						slotProfile.getTaskResourceProfile(),
+						scheduledUnit.getJobVertexId(),
+						multiTaskSlotLocality.getLocality()
+				);
+
 		return leaf.getLogicalSlotFuture();
 	}
 

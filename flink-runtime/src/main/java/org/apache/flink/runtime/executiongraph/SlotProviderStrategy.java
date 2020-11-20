@@ -115,7 +115,10 @@ public abstract class SlotProviderStrategy {
 			/**
 			 * SlotProvider 的默认实现为 SchedulerImpl
 			 */
-			return slotProvider.allocateSlot(slotRequestId, scheduledUnit, slotProfile, allocationTimeout);
+			return slotProvider.allocateSlot(slotRequestId,
+											 scheduledUnit,
+											 slotProfile,
+											 allocationTimeout);
 		}
 	}
 }

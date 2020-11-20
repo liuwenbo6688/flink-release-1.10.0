@@ -32,6 +32,8 @@ import java.util.concurrent.CompletableFuture;
 /**
  * The slot provider is responsible for preparing slots for ready-to-run tasks.
  *
+ * slot provider 负责为准备运行的task准备slot
+ *
  * <p>It supports two allocating modes:
  * <ul>
  *     <li>Immediate allocating: A request for a task slot immediately gets satisfied, we can call
