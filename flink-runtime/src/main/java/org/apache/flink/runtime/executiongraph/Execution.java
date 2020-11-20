@@ -311,11 +311,15 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
 			if (assignedResource == null) {
 
 				/**
-				 *
+				 * 1.
 				 */
 				assignedResource = logicalSlot;
 
+				/**
+				 * 2.
+				 */
 				if (logicalSlot.tryAssignPayload(this)) {
+
 					// check for concurrent modification (e.g. cancelling call)
 					if ((state == SCHEDULED || state == CREATED) && !taskManagerLocationFuture.isDone()) {
 						taskManagerLocationFuture.complete(logicalSlot.getTaskManagerLocation());
@@ -703,6 +707,9 @@ public class Execution implements AccessExecution, Archiveable<ArchivedExecution
 	public void deploy() throws JobException {
 		assertRunningInJobMasterMainThread();
 
+		/**
+		 *
+		 */
 		final LogicalSlot slot  = assignedResource;
 
 		checkNotNull(slot, "In order to deploy the execution we first have to assign a resource via tryAssignResource.");

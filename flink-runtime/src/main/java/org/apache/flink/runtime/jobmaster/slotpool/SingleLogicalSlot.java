@@ -39,6 +39,11 @@ import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
  */
 public class SingleLogicalSlot implements LogicalSlot, PhysicalSlot.Payload {
 
+
+	/**
+	 * CAS 操作
+	 * SingleLogicalSlot的payload对象进行cas操作，解决并发问题
+	 */
 	private static final AtomicReferenceFieldUpdater<SingleLogicalSlot, Payload> PAYLOAD_UPDATER = AtomicReferenceFieldUpdater.newUpdater(
 		SingleLogicalSlot.class,
 		Payload.class,
@@ -68,6 +73,9 @@ public class SingleLogicalSlot implements LogicalSlot, PhysicalSlot.Payload {
 	private volatile State state;
 
 	// LogicalSlot.Payload of this slot
+	/**
+	 * 代表了 Execution
+	 */
 	private volatile Payload payload;
 
 	public SingleLogicalSlot(

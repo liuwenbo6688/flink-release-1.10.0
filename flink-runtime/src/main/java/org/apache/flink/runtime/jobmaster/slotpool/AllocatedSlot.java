@@ -39,7 +39,9 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * 
  * <p>Note: Prior to the resource management changes introduced in (Flink Improvement Proposal 6),
  * an AllocatedSlot was allocated to the JobManager as soon as the TaskManager registered at the
- * JobManager. All slots had a default unknown resource profile. 
+ * JobManager. All slots had a default unknown resource profile.
+ *
+ *    AllocatedSlot表征的是物理意义上TaskExecutor上的一个slot资源
  */
 class AllocatedSlot implements PhysicalSlot {
 
@@ -58,6 +60,14 @@ class AllocatedSlot implements PhysicalSlot {
 	/** The number of the slot on the TaskManager to which slot belongs. Purely informational. */
 	private final int physicalSlotNumber;
 
+	/**
+	 *  AtomicReference 原子性操作,值得学习
+	 *
+	 *  代表逻辑的上的slot
+	 *
+	 *  独享资源:  SingleLogicalSlot
+	 *  共享资源:  MultiTaskSlot
+	 */
 	private final AtomicReference<Payload> payloadReference;
 
 	// ------------------------------------------------------------------------

@@ -23,6 +23,8 @@ import org.apache.flink.runtime.jobmaster.SlotContext;
 /**
  * The context of an {@link AllocatedSlot}. This represent an interface to classes outside the slot pool to interact
  * with allocated slots.
+ *
+ * PhysicalSlot(AllocatedSlot) 表征的是物理意义上TaskExecutor上的一个slot资源
  */
 public interface PhysicalSlot extends SlotContext {
 
@@ -37,6 +39,7 @@ public interface PhysicalSlot extends SlotContext {
 
 	/**
 	 * Payload which can be assigned to an {@link AllocatedSlot}.
+	 * 代表在物理slot上的逻辑slot
 	 */
 	interface Payload {
 

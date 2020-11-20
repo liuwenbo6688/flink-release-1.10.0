@@ -383,6 +383,9 @@ public class SlotSharingManager {
 	 */
 	public final class MultiTaskSlot extends TaskSlot implements PhysicalSlot.Payload {
 
+		/**
+		 *  一个MultiTaskSlot 可以包含多个 TaskSlot
+		 */
 		private final Map<AbstractID, TaskSlot> children;
 
 		// the root node has its parent set to null
@@ -704,6 +707,9 @@ public class SlotSharingManager {
 		private final MultiTaskSlot parent;
 
 		// future containing a LogicalSlot which is completed once the underlying SlotContext future is completed
+		/**
+		 *  SingleTaskSlot 对应的逻辑slot
+		 */
 		private final CompletableFuture<SingleLogicalSlot> singleLogicalSlotFuture;
 
 		// the resource profile of this slot.
