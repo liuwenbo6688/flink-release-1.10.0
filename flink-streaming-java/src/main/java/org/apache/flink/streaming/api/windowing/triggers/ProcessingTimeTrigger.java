@@ -34,7 +34,9 @@ public class ProcessingTimeTrigger extends Trigger<Object, TimeWindow> {
 
 	@Override
 	public TriggerResult onElement(Object element, long timestamp, TimeWindow window, TriggerContext ctx) {
-		// 和 EventTime 的类似，注册processing time定时器
+		/**
+		 *  和EventTime的类似，注册processing time定时器
+		 */
 		ctx.registerProcessingTimeTimer(window.maxTimestamp());
 		return TriggerResult.CONTINUE;
 	}

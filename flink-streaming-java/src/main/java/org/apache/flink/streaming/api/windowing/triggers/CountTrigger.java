@@ -34,6 +34,9 @@ import org.apache.flink.streaming.api.windowing.windows.Window;
 public class CountTrigger<W extends Window> extends Trigger<Object, W> {
 	private static final long serialVersionUID = 1L;
 
+	/**
+	 * 窗口元素数量达到maxCount，触发窗口计算
+	 */
 	private final long maxCount;
 
 	private final ReducingStateDescriptor<Long> stateDesc =
@@ -45,7 +48,11 @@ public class CountTrigger<W extends Window> extends Trigger<Object, W> {
 
 	@Override
 	public TriggerResult onElement(Object element, long timestamp, W window, TriggerContext ctx) throws Exception {
-		// 获取目前的count状态值
+
+		/**
+		 * 获取目前的count状态值，并且累加1
+		 * 当前的窗口元素个数，保存在状态中
+		 */
 		ReducingState<Long> count = ctx.getPartitionedState(stateDesc);
 		count.add(1L);
 

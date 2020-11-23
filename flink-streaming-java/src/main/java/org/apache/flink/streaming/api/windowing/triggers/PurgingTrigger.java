@@ -25,6 +25,10 @@ import org.apache.flink.streaming.api.windowing.windows.Window;
 /**
  * A trigger that can turn any {@link Trigger} into a purging {@code Trigger}.
  *
+ * PurgingTrigger是一个trigger的包装类。
+ * 具体作用为：如果被包装的trigger触发返回FIRE，则PurgingTrigger将返回修改为FIRE_AND_PURGE，其他的返回值不做处理。
+ *
+ *
  * <p>When the nested trigger fires, this will return a {@code FIRE_AND_PURGE}
  * {@link TriggerResult}.
  *
@@ -47,7 +51,7 @@ public class PurgingTrigger<T, W extends Window> extends Trigger<T, W> {
 		/**
 		 * PurgingTrigger是一个trigger的包装类。
 		 * 具体作用为：如果被包装的trigger触发返回FIRE，则PurgingTrigger将返回修改为FIRE_AND_PURGE，其他的返回值不做处理。
-		 * 就是如果返回FIRE，就再加一个PURGE
+		 * 说白了就是如果返回FIRE，就再加一个PURGE
 		 */
 		return triggerResult.isFire() ? TriggerResult.FIRE_AND_PURGE : triggerResult;
 	}

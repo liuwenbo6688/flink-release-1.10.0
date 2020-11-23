@@ -33,14 +33,22 @@ public class EventTimeTrigger extends Trigger<Object, TimeWindow> {
 
 	private EventTimeTrigger() {}
 
+
+	/**
+	 *  针对每个元素触发
+	 */
 	@Override
 	public TriggerResult onElement(Object element, long timestamp, TimeWindow window, TriggerContext ctx) throws Exception {
 		if (window.maxTimestamp() <= ctx.getCurrentWatermark()) {
-			// if the watermark is already past the window fire immediately
-			// window的最大时间戳 < watermark (就是 高水位watermark 已经超过窗口的最大时间)，该window需要立刻进行计算
+			/**
+			 * if the watermark is already past the window fire immediately
+			 * window的最大时间戳 < watermark (就是 高水位watermark 已经超过窗口的最大时间)，该window需要立刻进行计算
+			 */
 			return TriggerResult.FIRE;
 		} else {
-			// 注册一个event time事件，当watermark超过window.maxTimestamp时，会调用onEventTime方法
+			/**
+			 *  注册一个event time事件，当watermark超过window.maxTimestamp时，会调用onEventTime方法
+			 */
 			ctx.registerEventTimeTimer(window.maxTimestamp());
 			return TriggerResult.CONTINUE;
 		}
@@ -48,14 +56,17 @@ public class EventTimeTrigger extends Trigger<Object, TimeWindow> {
 
 	@Override
 	public TriggerResult onEventTime(long time, TimeWindow window, TriggerContext ctx) {
-		return time == window.maxTimestamp() ?
-			TriggerResult.FIRE :   // 当前时间为window的最大时间戳，触发计算
-			TriggerResult.CONTINUE;
+		/**
+		 *  当前时间为window的最大时间戳，触发计算
+		 */
+		return time == window.maxTimestamp() ? TriggerResult.FIRE : TriggerResult.CONTINUE;
 	}
 
 	@Override
 	public TriggerResult onProcessingTime(long time, TimeWindow window, TriggerContext ctx) throws Exception {
-		// 对于processing time，不做任何处理
+		/**
+		 * 对于processing time，不做任何处理
+		 */
 		return TriggerResult.CONTINUE;
 	}
 
