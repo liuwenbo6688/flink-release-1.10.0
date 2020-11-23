@@ -36,6 +36,9 @@ public class BroadcastPartitioner<T> extends StreamPartitioner<T> {
 	 */
 	@Override
 	public int selectChannel(SerializationDelegate<StreamRecord<T>> record) {
+		/**
+		 * 广播分区不支持选择Channel, 因为会输出到下游每个Channel中
+		 */
 		throw new UnsupportedOperationException("Broadcast partitioner does not support select channels.");
 	}
 

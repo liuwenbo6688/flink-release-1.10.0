@@ -32,6 +32,9 @@ public class GlobalPartitioner<T> extends StreamPartitioner<T> {
 
 	@Override
 	public int selectChannel(SerializationDelegate<StreamRecord<T>> record) {
+		/**
+		 * 对每条记录，只选择下游operator的第一个Channel
+		 */
 		return 0;
 	}
 

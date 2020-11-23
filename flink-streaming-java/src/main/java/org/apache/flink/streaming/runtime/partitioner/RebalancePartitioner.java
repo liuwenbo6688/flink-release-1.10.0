@@ -44,7 +44,12 @@ public class RebalancePartitioner<T> extends StreamPartitioner<T> {
 
 	@Override
 	public int selectChannel(SerializationDelegate<StreamRecord<T>> record) {
+		/**
+		 * 将记录以循环的方式输出到下游的operator的每个实例
+		 * 轮询
+		 */
 		nextChannelToSendTo = (nextChannelToSendTo + 1) % numberOfChannels;
+
 		return nextChannelToSendTo;
 	}
 

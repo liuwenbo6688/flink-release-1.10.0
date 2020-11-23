@@ -53,6 +53,7 @@ public class KeyGroupStreamPartitioner<T, K> extends StreamPartitioner<T> implem
 		try {
 			/**
 			 * 通过  keySelector 计算出分区的key值
+			 * 将记录按Key的Hash值输出到下游Operator实例
 			 */
 			key = keySelector.getKey(record.getInstance().getValue());
 		} catch (Exception e) {

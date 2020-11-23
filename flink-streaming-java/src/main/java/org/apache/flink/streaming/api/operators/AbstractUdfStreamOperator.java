@@ -54,7 +54,10 @@ public abstract class AbstractUdfStreamOperator<OUT, F extends Function>
 	private static final long serialVersionUID = 1L;
 
 
-	/** The user function. */
+	/** The user function.
+	 *  用户函数
+	 *  比如 MapFunction 、FlatMapFunction 等等
+	 * */
 	protected final F userFunction;
 
 	/** Flag to prevent duplicate function.close() calls in close() and dispose(). */

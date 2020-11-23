@@ -768,6 +768,7 @@ public class DataStream<T> {
 	/**
 	 * Creates a join operation. See {@link JoinedStreams} for an example of how the keys
 	 * and window can be specified.
+	 * 做两个流的join操作
 	 */
 	public <T2> JoinedStreams<T, T2> join(DataStream<T2> otherStream) {
 		return new JoinedStreams<>(this, otherStream);

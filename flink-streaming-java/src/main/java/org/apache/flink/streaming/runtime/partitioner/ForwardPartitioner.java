@@ -32,6 +32,10 @@ public class ForwardPartitioner<T> extends StreamPartitioner<T> {
 
 	@Override
 	public int selectChannel(SerializationDelegate<StreamRecord<T>> record) {
+		/**
+		 * 将记录输出到下游本地的operator实例
+		 * ForwardPartitioner分区器要求上下游算子并行度一样。上下游Operator同属一个SubTasks
+		 */
 		return 0;
 	}
 

@@ -52,6 +52,9 @@ public class RescalePartitioner<T> extends StreamPartitioner<T> {
 
 	@Override
 	public int selectChannel(SerializationDelegate<StreamRecord<T>> record) {
+		/**
+		 * 基于上下游Operator的并行度，将记录以循环的方式输出到下游Operator的每个实例
+		 */
 		if (++nextChannelToSendTo >= numberOfChannels) {
 			nextChannelToSendTo = 0;
 		}

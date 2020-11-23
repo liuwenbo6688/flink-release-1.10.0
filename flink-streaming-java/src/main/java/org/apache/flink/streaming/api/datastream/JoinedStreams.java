@@ -62,10 +62,17 @@ import static java.util.Objects.requireNonNull;
 @Public
 public class JoinedStreams<T1, T2> {
 
-	/** The first input stream. */
+	/** The first input stream.
+	 *  连接的第一个流
+	 *  one.join(two)中的one
+	 * */
 	private final DataStream<T1> input1;
 
-	/** The second input stream. */
+
+	/** The second input stream.
+	 *  连接的第二个流
+	 *  one.join(two)中的two
+	 * */
 	private final DataStream<T2> input2;
 
 	/**
@@ -75,13 +82,13 @@ public class JoinedStreams<T1, T2> {
 	 * @param input2 The second data stream.
 	 */
 	public JoinedStreams(DataStream<T1> input1, DataStream<T2> input2) {
-		this.input1 = requireNonNull(input1);
-		this.input2 = requireNonNull(input2);
+		this.input1 = requireNonNull(input1);// 第一个流
+		this.input2 = requireNonNull(input2);// 第二个流
 	}
 
 	/**
 	 * Specifies a {@link KeySelector} for elements from the first input.
-	 *
+	 * 指定
 	 * @param keySelector The KeySelector to be used for extracting the key for partitioning.
 	 */
 	public <KEY> Where<KEY> where(KeySelector<T1, KEY> keySelector)  {
@@ -477,11 +484,16 @@ public class JoinedStreams<T1, T2> {
 
 		@Override
 		public void coGroup(Iterable<T1> first, Iterable<T2> second, Collector<T> out) throws Exception {
+			/**
+			 * 这就是为什么join会输出window中所有的匹配数据对的原因
+			 * 双层遍历，单个输出匹配的数据对
+			 */
 			for (T1 val1: first) {
 				for (T2 val2: second) {
 					wrappedFunction.join(val1, val2, out);
 				}
 			}
+
 		}
 	}
 
