@@ -80,16 +80,25 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT>
 
 	private static final Logger LOG = LoggerFactory.getLogger(TwoPhaseCommitSinkFunction.class);
 
+	/**
+	 * 所有的待提交事务
+	 */
 	protected final LinkedHashMap<Long, TransactionHolder<TXN>> pendingCommitTransactions = new LinkedHashMap<>();
 
 	protected transient Optional<CONTEXT> userContext;
 
+	/**
+	 * 存储事务的后端状态对象
+	 */
 	protected transient ListState<State<TXN, CONTEXT>> state;
 
 	private final Clock clock;
 
 	private final ListStateDescriptor<State<TXN, CONTEXT>> stateDescriptor;
 
+	/**
+	 * 当前的事务
+	 */
 	private TransactionHolder<TXN> currentTransactionHolder;
 
 	/**
@@ -180,6 +189,7 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT>
 	 * will always succeed.
 	 *
 	 * <p>Usually implementation involves flushing the data.
+	 * 预提交。在Sink进行snapshot操作的时候调用此方法。
 	 */
 	protected abstract void preCommit(TXN transaction) throws Exception;
 
@@ -187,6 +197,7 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT>
 	 * Commit a pre-committed transaction. If this method fail, Flink application will be
 	 * restarted and {@link TwoPhaseCommitSinkFunction#recoverAndCommit(Object)} will be called again for the
 	 * same transaction.
+	 * 真正的提交操作。当系统中各个operator的checkpoint操作都成功之后，JobManager会通知各个operator checkpoint操作已完成。此时会调用该方法。
 	 */
 	protected abstract void commit(TXN transaction);
 
@@ -351,7 +362,7 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT>
 				userContext = operatorState.getContext();
 
 				/**
-				 *  获取待提交的事务
+				 *  1. 获取待提交的事务
 				 *  在snapshotState方法调用preCommit之后，事务会被存储到该列表
 				 */
 				List<TransactionHolder<TXN>> recoveredTransactions = operatorState.getPendingCommitTransactions();
@@ -370,7 +381,7 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT>
 				}
 
 				{
-					// 获取到尚未preCommit的事务
+					// 2. 获取到尚未preCommit的事务
 					TXN transaction = operatorState.getPendingTransaction().handle;
 					// 恢复并终止该事务
 					recoverAndAbort(transaction);
