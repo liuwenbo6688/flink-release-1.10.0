@@ -116,10 +116,16 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 	// Configuration values and user functions
 	// ------------------------------------------------------------------------
 
+	/**
+	 *
+	 */
 	protected final WindowAssigner<? super IN, W> windowAssigner;
 
 	private final KeySelector<IN, K> keySelector;
 
+	/**
+	 *
+	 */
 	private final Trigger<? super IN, ? super W> trigger;
 
 	private final StateDescriptor<? extends AppendingState<IN, ACC>, ?> windowStateDescriptor;
@@ -149,6 +155,9 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
 	private static final  String LATE_ELEMENTS_DROPPED_METRIC_NAME = "numLateRecordsDropped";
 
+	/**
+	 * 迟到被丢弃数据统计的监控
+	 */
 	protected transient Counter numLateRecordsDropped;
 
 	// ------------------------------------------------------------------------
@@ -156,7 +165,9 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 	// ------------------------------------------------------------------------
 
 	/** The state in which the window contents is stored. Each window is a namespace */
-	// 用于储存窗口中的数据
+	/**
+	 * 用于储存窗口中的数据, 底层是存储在状态后端
+	 */
 	private transient InternalAppendingState<K, W, IN, ACC, ACC> windowState;
 
 	/**
@@ -255,14 +266,17 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 	@Override
 	public void open() throws Exception {
 		super.open();
-
-		// 打开迟到被丢弃数据条数统计的监控
+		/**
+		 * 打开迟到被丢弃数据条数统计的监控
+		 */
 		this.numLateRecordsDropped = metrics.counter(LATE_ELEMENTS_DROPPED_METRIC_NAME);
-
-		// 创建一个基于时间戳的数据收集器，用于输出窗口数据到下游
+		/**
+		 * 创建一个基于时间戳的数据收集器，用于输出窗口数据到下游
+		 */
 		timestampedCollector = new TimestampedCollector<>(output);
-
-		// 获取时间服务，用于向windowAssignerContext传递当前的processing time
+		/**
+		 * 获取时间服务，用于向windowAssignerContext传递当前的processing time
+		 */
 		internalTimerService =
 				getInternalTimerService("window-timers", windowSerializer, this);
 
@@ -278,16 +292,18 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 				return internalTimerService.currentProcessingTime();
 			}
 		};
-
-
-		// ********** 创建windowState，用于储存窗口中的数据 ***********
+		/**
+		 * ********** 创建windowState，用于储存窗口中的数据 ***********
+		 */
 		if (windowStateDescriptor != null) {
 			windowState = (InternalAppendingState<K, W, IN, ACC, ACC>) getOrCreateKeyedState(windowSerializer, windowStateDescriptor);
 		}
 
 		// create the typed and helper states for merging windows
 		if (windowAssigner instanceof MergingWindowAssigner) {
-			// 如果 windowAssigner 是MergingWindowAssigner子类，即使用的是SessionWindow的话
+			/**
+			 * 如果 windowAssigner 是MergingWindowAssigner子类，即使用的是SessionWindow的话
+			 */
 
 			// store a typed reference for the state of merging windows - sanity check
 			if (windowState instanceof InternalMergingState) {
@@ -358,7 +374,12 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 		final K key = this.<K>getKeyedStateBackend().getCurrentKey();
 
 		if (windowAssigner instanceof MergingWindowAssigner) {
-			// 判断Window 是否是MergingWindowAssigner(合并窗口)的子类。比如 SessionWindow 属于MergingWindowAssigner
+
+			/**
+			 * Session Window
+			 * 判断Window 是否是MergingWindowAssigner(合并窗口)的子类。比如 SessionWindow 属于MergingWindowAssigner
+			 */
+
 			MergingWindowSet<W> mergingWindows = getMergingWindowSet();
 
 			for (W window: elementWindows) {
@@ -440,7 +461,10 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 			// need to make sure to update the merging state in state
 			mergingWindows.persist();
 		} else {
-			// 非 MergingWindowAssigner 部分的处理逻辑
+			/**
+			 * 非 MergingWindowAssigner 部分的处理逻辑
+			 * 非 Session Window，不需要做窗口的合并操作，这个分支逻辑比较简单
+			 */
 			for (W window: elementWindows) {
 
 				// drop if the window is already late
@@ -459,25 +483,38 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 				windowState.setCurrentNamespace(window);
 				windowState.add(element.getValue());
 
-				// 设置 trigger 上下文对象的key和window
+
+				/**
+				 * 设置 trigger 上下文对象的key和window
+				 */
 				triggerContext.key = key;
 				triggerContext.window = window;
 
-				// 调用trigger的onElement方法，询问trigger新element到来的时候需要作出什么动作。
+				/**
+				 *  调用trigger的onElement方法，询问trigger新element到来的时候需要作出什么动作。
+				 */
 				TriggerResult triggerResult = triggerContext.onElement(element);
 
-				if (triggerResult.isFire()) { // isFire表示需要触发计算
-					// 取出windowState当前namespace下所有的元素。即当前window下所有的元素
+				if (triggerResult.isFire()) {
+					/**
+					 * isFire表示需要触发计算
+					 * 取出windowState当前namespace下所有的元素。即当前window下所有的元素
+					 */
 					ACC contents = windowState.get();
 					if (contents == null) {
 						continue;
 					}
-					// 使用用户传入的处理函数来计算window内数据
+
+					/**
+					 * 使用用户传入的处理函数来计算window内数据
+					 */
 					emitWindowContents(window, contents);
 				}
 
 				if (triggerResult.isPurge()) {
-					// 如果触发器返回需要清空数据，则删除window中所有的数据
+					/**
+					 * 如果触发器返回需要清空数据，则删除window中所有的数据
+					 */
 					windowState.clear();
 				}
 

@@ -652,6 +652,8 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 	public WindowedStream<T, KEY, GlobalWindow> countWindow(long size) {
 		/**
 		 * 使用CountTrigger，每隔size个元素，触发一次计算，同时又使用PurgingTrigger，每次触发计算之后将window内容清空
+		 *
+		 * countWindow 是根据分组之后的数据条数来确定是否执行后面的运算
 		 */
 		return window(GlobalWindows.create())
 			.trigger(PurgingTrigger.of(CountTrigger.of(size)));

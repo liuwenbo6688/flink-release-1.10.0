@@ -45,6 +45,9 @@ import java.util.Collections;
 public class EventTimeSessionWindows extends MergingWindowAssigner<Object, TimeWindow> {
 	private static final long serialVersionUID = 1L;
 
+	/**
+	 * session的超时时间，也就是间隙gap
+	 */
 	protected long sessionTimeout;
 
 	protected EventTimeSessionWindows(long sessionTimeout) {

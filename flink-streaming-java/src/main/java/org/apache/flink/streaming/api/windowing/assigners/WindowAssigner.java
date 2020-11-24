@@ -41,6 +41,11 @@ import java.util.Collection;
  *            T 为元素类型
  * @param <W> The type of {@code Window} that this assigner assigns.
  *            W为窗口类型
+ *
+ *  对一个流进行window操作，元素以它们的key（keyBy函数指定）和它们所属的window进行分组。位于相同key和相同窗口的一组元素称之为窗格（pane）。
+ *  WindowAssigner的作用就是规定如何根据一个元素来获取包含它的窗口集合（assignWindows方法）。
+ *  除此之外windowAssigner还包含窗口的触发机制(何时计算窗口内元素)和时间类型（event time或processing time）
+ *
  */
 @PublicEvolving
 public abstract class WindowAssigner<T, W extends Window> implements Serializable {

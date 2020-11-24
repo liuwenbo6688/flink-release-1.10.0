@@ -51,6 +51,10 @@ public class GlobalWindows extends WindowAssigner<Object, GlobalWindow> {
 
 	@Override
 	public Trigger<Object, GlobalWindow> getDefaultTrigger(StreamExecutionEnvironment env) {
+		/**
+		 * 这里默认是返回 NeverTrigger
+		 * 实际设置是 KeyedStream#countWindow(long) 中设置的 PurgingTrigger包裹了CountTrigger
+		 */
 		return new NeverTrigger();
 	}
 

@@ -44,8 +44,15 @@ import java.util.Set;
 @PublicEvolving
 public class TimeWindow extends Window {
 
-	private final long start;// 窗口的开始时间
-	private final long end;  // 窗口的结束时间
+	/**
+	 *  窗口的开始时间
+	 */
+	private final long start;
+
+	/**
+	 * 窗口的结束时间
+	 */
+	private final long end;
 
 	public TimeWindow(long start, long end) {
 		this.start = start;
@@ -97,6 +104,9 @@ public class TimeWindow extends Window {
 
 		TimeWindow window = (TimeWindow) o;
 
+		/**
+		 * 开始时间和结束时间相同就认为是同一个窗口
+		 */
 		return end == window.end && start == window.start;
 	}
 

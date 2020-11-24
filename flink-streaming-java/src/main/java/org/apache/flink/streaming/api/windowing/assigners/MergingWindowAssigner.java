@@ -35,9 +35,11 @@ public abstract class MergingWindowAssigner<T, W extends Window> extends WindowA
 
 	/**
 	 * Determines which windows (if any) should be merged.
-	 *
+	 * 合并窗口的逻辑
 	 * @param windows The window candidates.
+	 *                   待合并的窗口集合
 	 * @param callback A callback that can be invoked to signal which windows should be merged.
+	 *                 回调函数，用于通知将要被合并的window
 	 */
 	public abstract void mergeWindows(Collection<W> windows, MergeCallback<W> callback);
 
