@@ -193,6 +193,9 @@ public class OneInputStreamTask<IN, OUT> extends StreamTask<OUT, OneInputStreamO
 		public void emitWatermark(Watermark watermark) throws Exception {
 			synchronized (lock) {
 				watermarkGauge.setCurrentWatermark(watermark.getTimestamp());
+				/**
+				 *  AbstractStreamOperator
+				 */
 				operator.processWatermark(watermark);
 			}
 		}

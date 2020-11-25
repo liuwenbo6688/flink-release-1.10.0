@@ -103,6 +103,9 @@ public class StatusWatermarkValve {
 				}
 
 				// now, attempt to find a new min watermark across all aligned channels
+				/**
+				 *
+				 */
 				findAndOutputNewMinWatermarkAcrossAlignedChannels();
 			}
 		}

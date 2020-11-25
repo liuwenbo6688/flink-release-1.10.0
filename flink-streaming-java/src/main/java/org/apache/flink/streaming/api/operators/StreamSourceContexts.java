@@ -164,9 +164,15 @@ public class StreamSourceContexts {
 		private final Output<StreamRecord<T>> output;
 		private final StreamRecord<T> reuse;
 
+		/**
+		 * watermark 发送时间间隔
+		 */
 		private final long watermarkInterval;
 
 		private volatile ScheduledFuture<?> nextWatermarkTimer;
+		/**
+		 * 下一次发送 Watermark 的时间
+		 */
 		private volatile long nextWatermarkTime;
 
 		private long lastRecordTime;
@@ -200,7 +206,6 @@ public class StreamSourceContexts {
 			/**
 			 *  设置一个watermark发送定时器，在watermarkInterval时间之后触发
 			 *  调用 WatermarkEmittingTask 的 onProcessingTime()方法
-			 *
 			 */
 			this.nextWatermarkTimer = this.timeService.registerTimer(
 				now + watermarkInterval,
@@ -245,6 +250,9 @@ public class StreamSourceContexts {
 		@Override
 		protected boolean allowWatermark(Watermark mark) {
 			// allow Long.MAX_VALUE since this is the special end-watermark that for example the Kafka source emits
+			/**
+			 * AutomaticWatermarkContext不允许我们显式要求发送watermark。只能通过定时任务发送。
+			 */
 			return mark.getTimestamp() == Long.MAX_VALUE && nextWatermarkTime != Long.MAX_VALUE;
 		}
 
@@ -463,6 +471,8 @@ public class StreamSourceContexts {
 		@Override
 		public void collect(T element) {
 			synchronized (checkpointLock) { // 防止和checkpoint操作同时进行
+
+				// 改变stream的状态为ACTIVE状态
 				streamStatusMaintainer.toggleStreamStatus(StreamStatus.ACTIVE);
 
 				if (nextCheck != null) {
@@ -471,6 +481,9 @@ public class StreamSourceContexts {
 					scheduleNextIdleDetectionTask();
 				}
 
+				/**
+				 *
+				 */
 				processAndCollect(element);
 			}
 		}
@@ -486,6 +499,9 @@ public class StreamSourceContexts {
 					scheduleNextIdleDetectionTask();
 				}
 
+				/**
+				 *
+				 */
 				processAndCollectWithTimestamp(element, timestamp);
 			}
 		}
@@ -505,6 +521,9 @@ public class StreamSourceContexts {
 						scheduleNextIdleDetectionTask();
 					}
 
+					/**
+					 * 调用子类 processAndEmitWatermark() 方法
+					 */
 					processAndEmitWatermark(mark);
 				}
 			}

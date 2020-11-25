@@ -52,12 +52,16 @@ public class TimestampsAndPeriodicWatermarksOperator<T>
 		super.open();
 
 		currentWatermark = Long.MIN_VALUE;
+
 		// 获取env中配置的自动watermark触发间隔CliFrontend
 		watermarkInterval = getExecutionConfig().getAutoWatermarkInterval();
 
 		if (watermarkInterval > 0) {
+			/**
+			 * 注册一个processing time定时器
+			 * 在watermarkInterval之后触发，调用本类的onProcessingTime()方法
+			 */
 			long now = getProcessingTimeService().getCurrentProcessingTime();
-			// 注册一个processing time定时器，在watermarkInterval之后触发，调用本类的 onProcessingTime 方法
 			getProcessingTimeService().registerTimer(now + watermarkInterval, this);
 		}
 	}
@@ -86,6 +90,9 @@ public class TimestampsAndPeriodicWatermarksOperator<T>
 			output.emitWatermark(newWatermark);
 		}
 
+		/**
+		 * 再次启动一个processing time定时任务
+		 */
 		long now = getProcessingTimeService().getCurrentProcessingTime();
 		getProcessingTimeService().registerTimer(now + watermarkInterval, this);
 	}
@@ -99,6 +106,11 @@ public class TimestampsAndPeriodicWatermarksOperator<T>
 	public void processWatermark(Watermark mark) throws Exception {
 		// if we receive a Long.MAX_VALUE watermark we forward it since it is used
 		// to signal the end of input and to not block watermark progress downstream
+		/**
+		 * 忽略上游的所有 watermark
+		 * 有一个例外就是上接收到timestamp为Long.MAX_VALUE的watermark
+		 * 此时意味着输入流已经结束，需要将这个watermark发往下游
+		 */
 		if (mark.getTimestamp() == Long.MAX_VALUE && currentWatermark != Long.MAX_VALUE) {
 			currentWatermark = Long.MAX_VALUE;
 			output.emitWatermark(mark);

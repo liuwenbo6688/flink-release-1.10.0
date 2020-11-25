@@ -129,6 +129,10 @@ public class ExecutionConfig implements Serializable, Archiveable<ArchivedExecut
 
 	private CodeAnalysisMode codeAnalysisMode = CodeAnalysisMode.DISABLE;
 
+	/**
+	 * Watermark 水位线自动发送的时间间隔
+	 * 默认是200ms
+	 */
 	private long autoWatermarkInterval = 0;
 
 	/**

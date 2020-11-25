@@ -159,6 +159,14 @@ public abstract class AbstractFetcher<T, KPH> {
 		this.watermarksPeriodic = watermarksPeriodic;
 		this.watermarksPunctuated = watermarksPunctuated;
 
+		/**
+		 * 水位线生成的方式：
+		 *
+		 * 不发送watermark                    NO_TIMESTAMPS_WATERMARKS
+		 * 周期性发送watermark                 PERIODIC_WATERMARKS
+		 * 元素到来的时候判断是否发送watermark   PUNCTUATED_WATERMARKS
+		 *
+		 */
 		if (watermarksPeriodic == null) {
 			if (watermarksPunctuated == null) {
 				// simple case, no watermarks involved
