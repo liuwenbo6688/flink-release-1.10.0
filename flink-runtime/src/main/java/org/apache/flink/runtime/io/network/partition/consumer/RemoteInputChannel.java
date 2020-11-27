@@ -79,7 +79,9 @@ public class RemoteInputChannel extends InputChannel implements BufferRecycler, 
 	 */
 	private final AtomicBoolean isReleased = new AtomicBoolean();
 
-	/** Client to establish a (possibly shared) TCP connection and request the partition. */
+	/** Client to establish a (possibly shared) TCP connection and request the partition.
+	 *  建立远程TCP连接，请求分区数据的客户端
+	 * */
 	private volatile PartitionRequestClient partitionRequestClient;
 
 	/**
@@ -99,7 +101,9 @@ public class RemoteInputChannel extends InputChannel implements BufferRecycler, 
 	/** The available buffer queue wraps both exclusive and requested floating buffers. */
 	private final AvailableBufferQueue bufferQueue = new AvailableBufferQueue();
 
-	/** The number of available buffers that have not been announced to the producer yet. */
+	/** The number of available buffers that have not been announced to the producer yet.
+	 *
+	 * */
 	private final AtomicInteger unannouncedCredit = new AtomicInteger(0);
 
 	/** The number of required buffers that equals to sender's backlog plus initial credit. */

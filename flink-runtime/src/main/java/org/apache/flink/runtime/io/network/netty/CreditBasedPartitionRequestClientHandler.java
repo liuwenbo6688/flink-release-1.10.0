@@ -62,6 +62,9 @@ import java.util.concurrent.atomic.AtomicReference;
  * Credit Based 数据发送端
  *
  * channelRead 方法
+ *
+ * 1. CreditBasedPartitionRequestClientHandler负责接收服务端通过 Netty channel 发送的数据, 解析数据后交给对应的 RemoteInputChannel
+ * 2.
  */
 class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdapter implements NetworkClientHandler {
 
@@ -187,6 +190,9 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
 		}
 	}
 
+	/**
+	 * 从netty channel中接收到数据
+	 */
 	@Override
 	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 		try {
@@ -272,7 +278,10 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
 
 		// ---- Buffer --------------------------------------------------------
 		if (msgClazz == NettyMessage.BufferResponse.class) {
-			// 正常接收到数据
+			/**
+			 *  正常接收到数据
+			 */
+
 			NettyMessage.BufferResponse bufferOrEvent = (NettyMessage.BufferResponse) msg;
 
 			RemoteInputChannel inputChannel = inputChannels.get(bufferOrEvent.receiverId);
@@ -290,7 +299,11 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
 			decodeBufferOrEvent(inputChannel, bufferOrEvent);
 
 		} else if (msgClazz == NettyMessage.ErrorResponse.class) {
-			// 返回错误
+
+			/**
+			 * 返回错误, 出现异常
+			 */
+
 			// ---- Error ---------------------------------------------------------
 			NettyMessage.ErrorResponse error = (NettyMessage.ErrorResponse) msg;
 
@@ -343,17 +356,21 @@ class CreditBasedPartitionRequestClientHandler extends ChannelInboundHandlerAdap
 				}
 
 				/**
-				 * 请求一个空的buffer
+				 * 从对应的 RemoteInputChannel 中请求一个 Buffer
 				 */
 				Buffer buffer = inputChannel.requestBuffer();
+
 				if (buffer != null) {
-					// 写入网络读取到的数据至buffer中
+					/**
+					 * 将接收的数据写入buffer
+					 */
 					nettyBuffer.readBytes(buffer.asByteBuf(), receivedSize);
 					buffer.setCompressed(bufferOrEvent.isCompressed);
 
 					/**
 					 *  处理数据
 					 *  通知inputChannel缓存数据已准备就绪
+					 *  通知对应的channel，backlog是生产者那边堆积的buffer数量
 					 */
 					inputChannel.onBuffer(buffer, bufferOrEvent.sequenceNumber, bufferOrEvent.backlog);
 				} else if (inputChannel.isReleased()) {

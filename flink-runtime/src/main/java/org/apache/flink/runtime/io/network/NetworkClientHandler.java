@@ -40,7 +40,7 @@ public interface NetworkClientHandler extends ChannelHandler {
 	 * The credit begins to announce after receiving the sender's backlog from buffer response.
 	 * Than means it should only happen after some interactions with the channel to make sure
 	 * the context will not be null.
-	 *
+	 * 通知有新的的 credit 可用
 	 * @param inputChannel The input channel with unannounced credits.
 	 */
 	void notifyCreditAvailable(final RemoteInputChannel inputChannel);

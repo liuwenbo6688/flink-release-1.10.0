@@ -44,10 +44,19 @@ class CreditBasedSequenceNumberingViewReader implements BufferAvailabilityListen
 
 	private final Object requestLock = new Object();
 
+	/**
+	 *  对应的 RemoteInputChannel 的 ID
+	 */
 	private final InputChannelID receiverId;
 
+	/**
+	 *  PartitionRequestQueue 负责将 ResultSubparition 中的数据通过网络发送给 RemoteInputChannel
+	 */
 	private final PartitionRequestQueue requestQueue;
 
+	/**
+	 * 消费 ResultSubpartition 的数据，并在 ResultSubpartition 有数据可用时获得通知
+	 */
 	private volatile ResultSubpartitionView subpartitionView;
 
 	/**
@@ -61,7 +70,9 @@ class CreditBasedSequenceNumberingViewReader implements BufferAvailabilityListen
 	private boolean isRegisteredAsAvailable = false;
 
 	/** The number of available buffers for holding data on the consumer side. */
-	//  该reader可用的credit数量, 也就是下游消费端可以接收的最大buffer数
+	/**
+	 * numCreditsAvailable的值是消费端还能够容纳的buffer的数量，也就是允许生产端发送的buffer的数量
+	 */
 	private int numCreditsAvailable;
 
 	private int sequenceNumber = -1;

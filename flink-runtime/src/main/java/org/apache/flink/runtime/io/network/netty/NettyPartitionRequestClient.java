@@ -72,7 +72,11 @@ public class NettyPartitionRequestClient implements PartitionRequestClient {
 			ConnectionID connectionId,
 			PartitionRequestClientFactory clientFactory) {
 
+		/**
+		 * netty的channel对象，可以直接通过channel向远程写数据
+		 */
 		this.tcpChannel = checkNotNull(tcpChannel);
+
 		/**
 		 *  来源：
 		 *
@@ -126,7 +130,10 @@ public class NettyPartitionRequestClient implements PartitionRequestClient {
 		clientHandler.addInputChannel(inputChannel);
 
 
-		// 创建PartitionRequest对象
+		/**
+		 * 创建PartitionRequest对象
+		 * PartitionRequest封装了请求的 sub-partition 的信息，当前 input channel 的 ID，以及初始 credit
+		 */
 		final PartitionRequest request = new PartitionRequest(
 				partitionId, subpartitionIndex, inputChannel.getInputChannelId(), inputChannel.getInitialCredit());
 

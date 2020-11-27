@@ -39,6 +39,7 @@ import static org.apache.flink.runtime.io.network.netty.NettyMessage.TaskEventRe
 /**
  * Channel handler to initiate data transfers and dispatch backwards flowing task events.
  *
+ * PartitionRequestServerHandler 负责处理消费端通过 PartitionRequestClient 发送的 PartitionRequest 和 AddCredit 等请求；
  * 主要看 channelRead0 方法
  */
 class PartitionRequestServerHandler extends SimpleChannelInboundHandler<NettyMessage> {
@@ -49,6 +50,9 @@ class PartitionRequestServerHandler extends SimpleChannelInboundHandler<NettyMes
 
 	private final TaskEventPublisher taskEventPublisher;
 
+	/**
+	 *  负责将 ResultSubparition 中的数据通过网络发送给 RemoteInputChannel
+	 */
 	private final PartitionRequestQueue outboundQueue;
 
 	PartitionRequestServerHandler(
@@ -80,7 +84,12 @@ class PartitionRequestServerHandler extends SimpleChannelInboundHandler<NettyMes
 			// ----------------------------------------------------------------
 			// Intermediate result partition requests
 			// ----------------------------------------------------------------
-			if (msgClazz == PartitionRequest.class) { // 如果是分区请求消息
+			if (msgClazz == PartitionRequest.class) {
+				/**
+				 * 如果是分区请求消息
+				 * Server端(生产端)接收到client发送的 PartitionRequest
+				 *
+				 */
 				PartitionRequest request = (PartitionRequest) msg;
 
 				LOG.debug("Read channel on {}: {}.", ctx.channel().localAddress(), request);
@@ -107,6 +116,8 @@ class PartitionRequestServerHandler extends SimpleChannelInboundHandler<NettyMes
 					/**
 					 *   注册reader到outboundQueue中
 					 *   outboundQueue中存放了多个reader，这些reader在队列中排队，等待数据发送
+					 *
+					 *   通知 PartitionRequestQueue 创建了一个 NetworkSequenceViewReader
 					 */
 					outboundQueue.notifyReaderCreated(reader);
 

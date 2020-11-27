@@ -47,6 +47,14 @@ import static org.apache.flink.runtime.io.network.netty.NettyMessage.BufferRespo
 /**
  * A nonEmptyReader of partition queues, which listens for channel writability changed
  * events before writing and flushing {@link Buffer} instances.
+ *
+ *
+ * PartitionRequestQueue 负责将 ResultSubparition 中的数据通过网络发送给 RemoteInputChannel;
+ * PartitionRequestQueue 会监听 Netty Channel 的可写入状态，当 Channel 可写入时，就会从 availableReaders 队列中取出 NetworkSequenceViewReader，读取数据并写入网络。
+ * 这个可写入状态是 Netty 通过水位线进行控制的，NettyServer 在启动的时候会配置水位线，如果 Netty 输出缓冲中的字节数超过了高水位值，我们会等到其降到低水位值以下才继续写入数据。
+ * 通过水位线机制确保不往网络中写入太多数据。
+ *
+ *
  */
 class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 
@@ -55,10 +63,15 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 	private final ChannelFutureListener writeListener = new WriteAndFlushNextMessageIfPossibleListener();
 
 	/** The readers which are already enqueued available for transferring data. */
-	//
+	/**
+	 * 当一个 NetworkSequenceViewReader 中有数据可以被消费时，就会被加入到 availableReaders 队列中。
+	 */
 	private final ArrayDeque<NetworkSequenceViewReader> availableReaders = new ArrayDeque<>();
 
-	/** All the readers created for the consumers' partition requests. */
+	/** All the readers created for the consumers' partition requests.
+	 *
+	 *  PartitionRequestQueue 会持有所有请求消费数据的 RemoteInputChannel的ID和NetworkSequenceViewReader之间的映射关系。
+	 * */
 	private final ConcurrentMap<InputChannelID, NetworkSequenceViewReader> allReaders = new ConcurrentHashMap<>();
 
 	private boolean fatalError;
@@ -74,6 +87,9 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 		super.channelRegistered(ctx);
 	}
 
+	/**
+	 * 通知 NetworkSequenceViewReader 有数据可读取
+	 */
 	void notifyReaderNonEmpty(final NetworkSequenceViewReader reader) {
 		// The notification might come from the same thread. For the initial writes this
 		// might happen before the reader has set its reference to the view, because
@@ -111,7 +127,10 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 		 */
 		registerAvailableReader(reader);
 
-		if (triggerWrite) {  // availableReaders从空变为非空时，才会触发flush
+		if (triggerWrite) {
+			/**
+			 * 如果这是队列中第一个元素，调用 writeAndFlushNextMessageIfPossible 发送数据
+			 */
 			writeAndFlushNextMessageIfPossible(ctx.channel());
 		}
 	}
@@ -204,10 +223,8 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 
 
 	/**
-	 * Channel的可写状态发生更改
 	 *
-	 * @param ctx
-	 * @throws Exception
+	 * 当前channel的读写状态发生变化
 	 */
 	@Override
 	public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
@@ -359,6 +376,9 @@ class PartitionRequestQueue extends ChannelInboundHandlerAdapter {
 		public void operationComplete(ChannelFuture future) throws Exception {
 			try {
 				if (future.isSuccess()) {
+					/**
+					 *  发送成功，再次尝试写入
+					 */
 					writeAndFlushNextMessageIfPossible(future.channel());
 				} else if (future.cause() != null) {
 					handleException(future.channel(), future.cause());
