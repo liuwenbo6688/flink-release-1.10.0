@@ -127,6 +127,14 @@ class NettyServer {
 			bootstrap.childOption(ChannelOption.SO_RCVBUF, receiveAndSendBufferSize);
 		}
 
+
+		/**
+		 *   NettyServer 在启动的时候会配置水位线;
+		 *   如果 Netty 输出缓冲中的字节数超过了高水位值，我们会等到其降到低水位值以下才继续写入数据;
+		 *   通过水位线机制确保不往网络中写入太多数据;
+		 *
+		 *
+		 */
 		// Low and high water marks for flow control
 		// hack around the impossibility (in the current netty version) to set both watermarks at
 		// the same time:
@@ -134,6 +142,9 @@ class NettyServer {
 		final int newLowWaterMark = config.getMemorySegmentSize() + 1;
 		final int newHighWaterMark = 2 * config.getMemorySegmentSize();
 		if (newLowWaterMark > defaultHighWaterMark) {
+			//配置水位线，确保不往网络中写入太多数据
+			//当输出缓冲中的字节数超过高水位值, 则 Channel.isWritable() 会返回false
+			//当输出缓存中的字节数低于低水位值, 则 Channel.isWritable() 会重新返回true
 			bootstrap.childOption(ChannelOption.WRITE_BUFFER_HIGH_WATER_MARK, newHighWaterMark);
 			bootstrap.childOption(ChannelOption.WRITE_BUFFER_LOW_WATER_MARK, newLowWaterMark);
 		} else { // including (newHighWaterMark < defaultLowWaterMark)
